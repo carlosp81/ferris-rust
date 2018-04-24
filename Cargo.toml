@@ -2,3 +2,8 @@
 name = "hello_world" # the name of the package
 version = "0.1.0"    # the current version, obeying semver
 authors = ["you@example.com"]
+
+
+[dependencies]
+piston_window = "0.77"
+find_folder = "0.3.0"
