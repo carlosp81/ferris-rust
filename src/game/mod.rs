@@ -2,41 +2,12 @@
 
 extern crate ggez;
 
-use ggez::conf;
+
 use ggez::{Context, GameResult};
 use ggez::event::{self, Button, MouseState, Keycode, Mod, Axis};
 use ggez::graphics;
-use std::env;
-use std::path;
 
-pub mod entity {
-    use ggez::graphics;
-    pub struct Movement {
-        pub left: bool,
-        pub right: bool,
-        pub up: bool,
-        pub down: bool,
-    }
-
-    pub struct Entity {
-        pub sprite: graphics::Image,
-        pub x: f32,
-        pub y: f32,
-        pub hp: u8,
-        pub mov: Movement,
-        pub vel: f32,
-
-    }
-
-
-    impl Entity {
-        pub fn translate(&mut self, dx: f32, dy: f32) {
-            self.x += dx;
-            self.y += dy;
-        }
-    }
-
-}
+mod entity;
 
 // First we make a structure to contain the game's state
 pub struct MainState {

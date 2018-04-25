@@ -10,7 +10,6 @@ use std::env;
 use std::path;
 
 mod game;
-
 // Now our main function, which does three things:
 //
 // * First, create a new `ggez::conf::Conf`
