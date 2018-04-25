@@ -16,6 +16,7 @@ pub struct MainState {
     player: entity::Entity,
     score: u32,
     font: graphics::Font,
+    background: graphics::Image,
     
 }
 
@@ -43,6 +44,7 @@ impl MainState {
             },
             score: 0,
             font,
+            background: graphics::Image::new(ctx, "/texture/background.png").unwrap(),
         };
         Ok(s)
     }
@@ -84,6 +86,8 @@ impl event::EventHandler for MainState {
         // Drawables are drawn from their top-left corner.
         let dest_point = graphics::Point2::new(10.0, 10.0);
         let player_pos = graphics::Point2::new(self.player.x, self.player.y);
+        graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, 0.0), 0.0)?;
+
         graphics::draw(ctx, &self.score_text, dest_point, 0.0)?;
         
         graphics::draw(ctx, &self.player.sprite, player_pos, 0.0)?;
