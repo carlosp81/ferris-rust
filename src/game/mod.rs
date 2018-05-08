@@ -7,6 +7,8 @@ use ggez::{Context, GameResult};
 use ggez::event::{self, Button, MouseState, Keycode, Mod, Axis};
 use ggez::graphics;
 
+use std;
+
 mod entity;
 
 // First we make a structure to contain the game's state
@@ -17,7 +19,7 @@ pub struct MainState {
     score: u32,
     font: graphics::Font,
     background: graphics::Image,
-    
+	elapsed_ms: u64,
 }
 
 impl MainState {
@@ -44,8 +46,9 @@ impl MainState {
             },
             score: 0,
             font,
-            background: graphics::Image::new(ctx, "/texture/background.png").unwrap(),
-        };
+            background: graphics::Image::new(ctx, "/texture/background_tiled.png").unwrap(),
+			elapsed_ms: 0,	//Elapsed time since state creation, in milliseconds, updated in update()
+		};
         Ok(s)
     }
     
@@ -59,6 +62,11 @@ impl MainState {
 impl event::EventHandler for MainState {
     fn update(&mut self, _ctx: &mut Context) -> GameResult<()> {
         
+		//Update elapsed milliseconds
+		let now = std::time::SystemTime::now();
+		let difference = now.duration_since(std::time::UNIX_EPOCH).expect("Time went backwards");
+		self.elapsed_ms = difference.as_secs() * 1000 + difference.subsec_nanos() as u64 / 1_000_000;
+		
         //self.score_tex.f //graphics::Text::new(_ctx, &format!("Score: {}", self.score), _ctx.default_font)?;
 
         self.score_text = graphics::Text::new(_ctx, &format!("Score: {}", &self.score.to_string()), &self.font).unwrap();
@@ -86,8 +94,13 @@ impl event::EventHandler for MainState {
         // Drawables are drawn from their top-left corner.
         let dest_point = graphics::Point2::new(10.0, 10.0);
         let player_pos = graphics::Point2::new(self.player.x, self.player.y);
-        graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, 0.0), 0.0)?;
 
+		// Draw the background once
+		graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, 0.0 + (self.elapsed_ms/20%1920) as f32), 0.0)?;
+		
+		// And draw another background above/below it.
+		graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, -1920.0 + (self.elapsed_ms/20 % 1920) as f32), 0.0)?;
+		
         graphics::draw(ctx, &self.score_text, dest_point, 0.0)?;
         
         graphics::draw(ctx, &self.player.sprite, player_pos, 0.0)?;
