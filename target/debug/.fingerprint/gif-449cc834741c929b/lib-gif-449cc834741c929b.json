@@ -1,1 +1,0 @@
-{"rustc":11726863947890244693,"features":"[\"default\", \"raii_no_panic\"]","target":15788986371036942927,"profile":2479238963835404001,"path":8686577363979791382,"deps":[["color_quant v1.0.0",7858648293824651358],["lzw v0.10.0",6330132558448231103]],"local":[{"Precalculated":"0.9.2"}],"rustflags":[],"epoch":"Epoch2015"}
