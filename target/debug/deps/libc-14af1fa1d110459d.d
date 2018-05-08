@@ -1,0 +1,13 @@
+C:\Users\kououken\Documents\rust\cs410p-project\target\debug\deps\liblibc-14af1fa1d110459d.rlib: C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\lib.rs C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\macros.rs C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\dox.rs C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\windows.rs C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\redox\mod.rs C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\redox\net.rs C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\cloudabi\mod.rs C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\fuchsia\mod.rs C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\unix\mod.rs
+
+C:\Users\kououken\Documents\rust\cs410p-project\target\debug\deps\libc-14af1fa1d110459d.d: C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\lib.rs C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\macros.rs C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\dox.rs C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\windows.rs C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\redox\mod.rs C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\redox\net.rs C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\cloudabi\mod.rs C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\fuchsia\mod.rs C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\unix\mod.rs
+
+C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\lib.rs:
+C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\macros.rs:
+C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\dox.rs:
+C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\windows.rs:
+C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\redox\mod.rs:
+C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\redox\net.rs:
+C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\cloudabi\mod.rs:
+C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\fuchsia\mod.rs:
+C:\Users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\libc-0.2.40\src\unix\mod.rs:

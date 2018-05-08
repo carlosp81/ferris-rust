@@ -1,0 +1,175 @@
+TARGET = Some("x86_64-pc-windows-msvc")
+OPT_LEVEL = Some("0")
+TARGET = Some("x86_64-pc-windows-msvc")
+HOST = Some("x86_64-pc-windows-msvc")
+TARGET = Some("x86_64-pc-windows-msvc")
+TARGET = Some("x86_64-pc-windows-msvc")
+HOST = Some("x86_64-pc-windows-msvc")
+CC_x86_64-pc-windows-msvc = None
+CC_x86_64_pc_windows_msvc = None
+HOST_CC = None
+CC = None
+TARGET = Some("x86_64-pc-windows-msvc")
+HOST = Some("x86_64-pc-windows-msvc")
+CFLAGS_x86_64-pc-windows-msvc = None
+CFLAGS_x86_64_pc_windows_msvc = None
+HOST_CFLAGS = None
+CFLAGS = None
+DEBUG = Some("true")
+running: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\BuildTools\\VC\\Tools\\MSVC\\14.13.26128\\bin\\HostX64\\x64\\cl.exe" "/nologo" "/MD" "/Z7" "/I" "bzip2-1.0.6" "/D_WIN32" "/DBZ_EXPORT" "/DBZ_NO_STDIO" "/FoC:\\Users\\kououken\\Documents\\rust\\cs410p-project\\target\\debug\\build\\bzip2-sys-3b253271818ec9a3\\out\\bzip2-1.0.6\\blocksort.o" "/c" "bzip2-1.0.6/blocksort.c"
+blocksort.c
+c:\users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\bzip2-sys-0.1.6\bzip2-1.0.6\bzlib.h(70): warning C4005: 'BZ_EXPORT': macro redefinition
+c:\users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\bzip2-sys-0.1.6\bzip2-1.0.6\bzlib.h(70): note: command-line arguments:  see previous definition of 'BZ_EXPORT'
+exit code: 0
+TARGET = Some("x86_64-pc-windows-msvc")
+OPT_LEVEL = Some("0")
+TARGET = Some("x86_64-pc-windows-msvc")
+HOST = Some("x86_64-pc-windows-msvc")
+TARGET = Some("x86_64-pc-windows-msvc")
+TARGET = Some("x86_64-pc-windows-msvc")
+HOST = Some("x86_64-pc-windows-msvc")
+CC_x86_64-pc-windows-msvc = None
+CC_x86_64_pc_windows_msvc = None
+HOST_CC = None
+CC = None
+TARGET = Some("x86_64-pc-windows-msvc")
+HOST = Some("x86_64-pc-windows-msvc")
+CFLAGS_x86_64-pc-windows-msvc = None
+CFLAGS_x86_64_pc_windows_msvc = None
+HOST_CFLAGS = None
+CFLAGS = None
+DEBUG = Some("true")
+running: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\BuildTools\\VC\\Tools\\MSVC\\14.13.26128\\bin\\HostX64\\x64\\cl.exe" "/nologo" "/MD" "/Z7" "/I" "bzip2-1.0.6" "/D_WIN32" "/DBZ_EXPORT" "/DBZ_NO_STDIO" "/FoC:\\Users\\kououken\\Documents\\rust\\cs410p-project\\target\\debug\\build\\bzip2-sys-3b253271818ec9a3\\out\\bzip2-1.0.6\\huffman.o" "/c" "bzip2-1.0.6/huffman.c"
+huffman.c
+c:\users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\bzip2-sys-0.1.6\bzip2-1.0.6\bzlib.h(70): warning C4005: 'BZ_EXPORT': macro redefinition
+c:\users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\bzip2-sys-0.1.6\bzip2-1.0.6\bzlib.h(70): note: command-line arguments:  see previous definition of 'BZ_EXPORT'
+exit code: 0
+TARGET = Some("x86_64-pc-windows-msvc")
+OPT_LEVEL = Some("0")
+TARGET = Some("x86_64-pc-windows-msvc")
+HOST = Some("x86_64-pc-windows-msvc")
+TARGET = Some("x86_64-pc-windows-msvc")
+TARGET = Some("x86_64-pc-windows-msvc")
+HOST = Some("x86_64-pc-windows-msvc")
+CC_x86_64-pc-windows-msvc = None
+CC_x86_64_pc_windows_msvc = None
+HOST_CC = None
+CC = None
+TARGET = Some("x86_64-pc-windows-msvc")
+HOST = Some("x86_64-pc-windows-msvc")
+CFLAGS_x86_64-pc-windows-msvc = None
+CFLAGS_x86_64_pc_windows_msvc = None
+HOST_CFLAGS = None
+CFLAGS = None
+DEBUG = Some("true")
+running: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\BuildTools\\VC\\Tools\\MSVC\\14.13.26128\\bin\\HostX64\\x64\\cl.exe" "/nologo" "/MD" "/Z7" "/I" "bzip2-1.0.6" "/D_WIN32" "/DBZ_EXPORT" "/DBZ_NO_STDIO" "/FoC:\\Users\\kououken\\Documents\\rust\\cs410p-project\\target\\debug\\build\\bzip2-sys-3b253271818ec9a3\\out\\bzip2-1.0.6\\crctable.o" "/c" "bzip2-1.0.6/crctable.c"
+crctable.c
+c:\users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\bzip2-sys-0.1.6\bzip2-1.0.6\bzlib.h(70): warning C4005: 'BZ_EXPORT': macro redefinition
+c:\users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\bzip2-sys-0.1.6\bzip2-1.0.6\bzlib.h(70): note: command-line arguments:  see previous definition of 'BZ_EXPORT'
+exit code: 0
+TARGET = Some("x86_64-pc-windows-msvc")
+OPT_LEVEL = Some("0")
+TARGET = Some("x86_64-pc-windows-msvc")
+HOST = Some("x86_64-pc-windows-msvc")
+TARGET = Some("x86_64-pc-windows-msvc")
+TARGET = Some("x86_64-pc-windows-msvc")
+HOST = Some("x86_64-pc-windows-msvc")
+CC_x86_64-pc-windows-msvc = None
+CC_x86_64_pc_windows_msvc = None
+HOST_CC = None
+CC = None
+TARGET = Some("x86_64-pc-windows-msvc")
+HOST = Some("x86_64-pc-windows-msvc")
+CFLAGS_x86_64-pc-windows-msvc = None
+CFLAGS_x86_64_pc_windows_msvc = None
+HOST_CFLAGS = None
+CFLAGS = None
+DEBUG = Some("true")
+running: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\BuildTools\\VC\\Tools\\MSVC\\14.13.26128\\bin\\HostX64\\x64\\cl.exe" "/nologo" "/MD" "/Z7" "/I" "bzip2-1.0.6" "/D_WIN32" "/DBZ_EXPORT" "/DBZ_NO_STDIO" "/FoC:\\Users\\kououken\\Documents\\rust\\cs410p-project\\target\\debug\\build\\bzip2-sys-3b253271818ec9a3\\out\\bzip2-1.0.6\\randtable.o" "/c" "bzip2-1.0.6/randtable.c"
+randtable.c
+c:\users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\bzip2-sys-0.1.6\bzip2-1.0.6\bzlib.h(70): warning C4005: 'BZ_EXPORT': macro redefinition
+c:\users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\bzip2-sys-0.1.6\bzip2-1.0.6\bzlib.h(70): note: command-line arguments:  see previous definition of 'BZ_EXPORT'
+exit code: 0
+TARGET = Some("x86_64-pc-windows-msvc")
+OPT_LEVEL = Some("0")
+TARGET = Some("x86_64-pc-windows-msvc")
+HOST = Some("x86_64-pc-windows-msvc")
+TARGET = Some("x86_64-pc-windows-msvc")
+TARGET = Some("x86_64-pc-windows-msvc")
+HOST = Some("x86_64-pc-windows-msvc")
+CC_x86_64-pc-windows-msvc = None
+CC_x86_64_pc_windows_msvc = None
+HOST_CC = None
+CC = None
+TARGET = Some("x86_64-pc-windows-msvc")
+HOST = Some("x86_64-pc-windows-msvc")
+CFLAGS_x86_64-pc-windows-msvc = None
+CFLAGS_x86_64_pc_windows_msvc = None
+HOST_CFLAGS = None
+CFLAGS = None
+DEBUG = Some("true")
+running: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\BuildTools\\VC\\Tools\\MSVC\\14.13.26128\\bin\\HostX64\\x64\\cl.exe" "/nologo" "/MD" "/Z7" "/I" "bzip2-1.0.6" "/D_WIN32" "/DBZ_EXPORT" "/DBZ_NO_STDIO" "/FoC:\\Users\\kououken\\Documents\\rust\\cs410p-project\\target\\debug\\build\\bzip2-sys-3b253271818ec9a3\\out\\bzip2-1.0.6\\compress.o" "/c" "bzip2-1.0.6/compress.c"
+compress.c
+c:\users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\bzip2-sys-0.1.6\bzip2-1.0.6\bzlib.h(70): warning C4005: 'BZ_EXPORT': macro redefinition
+c:\users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\bzip2-sys-0.1.6\bzip2-1.0.6\bzlib.h(70): note: command-line arguments:  see previous definition of 'BZ_EXPORT'
+exit code: 0
+TARGET = Some("x86_64-pc-windows-msvc")
+OPT_LEVEL = Some("0")
+TARGET = Some("x86_64-pc-windows-msvc")
+HOST = Some("x86_64-pc-windows-msvc")
+TARGET = Some("x86_64-pc-windows-msvc")
+TARGET = Some("x86_64-pc-windows-msvc")
+HOST = Some("x86_64-pc-windows-msvc")
+CC_x86_64-pc-windows-msvc = None
+CC_x86_64_pc_windows_msvc = None
+HOST_CC = None
+CC = None
+TARGET = Some("x86_64-pc-windows-msvc")
+HOST = Some("x86_64-pc-windows-msvc")
+CFLAGS_x86_64-pc-windows-msvc = None
+CFLAGS_x86_64_pc_windows_msvc = None
+HOST_CFLAGS = None
+CFLAGS = None
+DEBUG = Some("true")
+running: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\BuildTools\\VC\\Tools\\MSVC\\14.13.26128\\bin\\HostX64\\x64\\cl.exe" "/nologo" "/MD" "/Z7" "/I" "bzip2-1.0.6" "/D_WIN32" "/DBZ_EXPORT" "/DBZ_NO_STDIO" "/FoC:\\Users\\kououken\\Documents\\rust\\cs410p-project\\target\\debug\\build\\bzip2-sys-3b253271818ec9a3\\out\\bzip2-1.0.6\\decompress.o" "/c" "bzip2-1.0.6/decompress.c"
+decompress.c
+c:\users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\bzip2-sys-0.1.6\bzip2-1.0.6\bzlib.h(70): warning C4005: 'BZ_EXPORT': macro redefinition
+c:\users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\bzip2-sys-0.1.6\bzip2-1.0.6\bzlib.h(70): note: command-line arguments:  see previous definition of 'BZ_EXPORT'
+exit code: 0
+TARGET = Some("x86_64-pc-windows-msvc")
+OPT_LEVEL = Some("0")
+TARGET = Some("x86_64-pc-windows-msvc")
+HOST = Some("x86_64-pc-windows-msvc")
+TARGET = Some("x86_64-pc-windows-msvc")
+TARGET = Some("x86_64-pc-windows-msvc")
+HOST = Some("x86_64-pc-windows-msvc")
+CC_x86_64-pc-windows-msvc = None
+CC_x86_64_pc_windows_msvc = None
+HOST_CC = None
+CC = None
+TARGET = Some("x86_64-pc-windows-msvc")
+HOST = Some("x86_64-pc-windows-msvc")
+CFLAGS_x86_64-pc-windows-msvc = None
+CFLAGS_x86_64_pc_windows_msvc = None
+HOST_CFLAGS = None
+CFLAGS = None
+DEBUG = Some("true")
+running: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\BuildTools\\VC\\Tools\\MSVC\\14.13.26128\\bin\\HostX64\\x64\\cl.exe" "/nologo" "/MD" "/Z7" "/I" "bzip2-1.0.6" "/D_WIN32" "/DBZ_EXPORT" "/DBZ_NO_STDIO" "/FoC:\\Users\\kououken\\Documents\\rust\\cs410p-project\\target\\debug\\build\\bzip2-sys-3b253271818ec9a3\\out\\bzip2-1.0.6\\bzlib.o" "/c" "bzip2-1.0.6/bzlib.c"
+bzlib.c
+c:\users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\bzip2-sys-0.1.6\bzip2-1.0.6\bzlib.h(70): warning C4005: 'BZ_EXPORT': macro redefinition
+c:\users\kououken\.cargo\registry\src\github.com-1ecc6299db9ec823\bzip2-sys-0.1.6\bzip2-1.0.6\bzlib.h(70): note: command-line arguments:  see previous definition of 'BZ_EXPORT'
+exit code: 0
+TARGET = Some("x86_64-pc-windows-msvc")
+running: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\BuildTools\\VC\\Tools\\MSVC\\14.13.26128\\bin\\HostX64\\x64\\lib.exe" "/OUT:C:\\Users\\kououken\\Documents\\rust\\cs410p-project\\target\\debug\\build\\bzip2-sys-3b253271818ec9a3\\out\\libbz2.a" "/nologo" "C:\\Users\\kououken\\Documents\\rust\\cs410p-project\\target\\debug\\build\\bzip2-sys-3b253271818ec9a3\\out\\bzip2-1.0.6\\blocksort.o" "C:\\Users\\kououken\\Documents\\rust\\cs410p-project\\target\\debug\\build\\bzip2-sys-3b253271818ec9a3\\out\\bzip2-1.0.6\\huffman.o" "C:\\Users\\kououken\\Documents\\rust\\cs410p-project\\target\\debug\\build\\bzip2-sys-3b253271818ec9a3\\out\\bzip2-1.0.6\\crctable.o" "C:\\Users\\kououken\\Documents\\rust\\cs410p-project\\target\\debug\\build\\bzip2-sys-3b253271818ec9a3\\out\\bzip2-1.0.6\\randtable.o" "C:\\Users\\kououken\\Documents\\rust\\cs410p-project\\target\\debug\\build\\bzip2-sys-3b253271818ec9a3\\out\\bzip2-1.0.6\\compress.o" "C:\\Users\\kououken\\Documents\\rust\\cs410p-project\\target\\debug\\build\\bzip2-sys-3b253271818ec9a3\\out\\bzip2-1.0.6\\decompress.o" "C:\\Users\\kououken\\Documents\\rust\\cs410p-project\\target\\debug\\build\\bzip2-sys-3b253271818ec9a3\\out\\bzip2-1.0.6\\bzlib.o"
+exit code: 0
+TARGET = Some("x86_64-pc-windows-msvc")
+HOST = Some("x86_64-pc-windows-msvc")
+TARGET = Some("x86_64-pc-windows-msvc")
+TARGET = Some("x86_64-pc-windows-msvc")
+HOST = Some("x86_64-pc-windows-msvc")
+CC_x86_64-pc-windows-msvc = None
+CC_x86_64_pc_windows_msvc = None
+HOST_CC = None
+CC = None
+cargo:rustc-link-lib=static=bz2
+cargo:rustc-link-search=native=C:\Users\kououken\Documents\rust\cs410p-project\target\debug\build\bzip2-sys-3b253271818ec9a3\out
