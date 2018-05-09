@@ -60,13 +60,15 @@ impl MainState {
 			elapsed_ms: 0,	//Elapsed time since state creation, in milliseconds
 			delta_ms: 0,	//Elapsed time since last frame, in milliseconds
 		};
+		let player_sprite = graphics::Image::new(ctx, "/texture/crab.png").unwrap();
+		
 		let mut player = entity::Entity {
             entity_type: entity::EntityType::Player,
-			sprite: graphics::Image::new(ctx, "/texture/crab.png").unwrap(),
-            x: 0.0,
-            y: 0.0,
+			sprite: player_sprite.clone(),
+            x: (ctx.conf.window_mode.width as f32 / 2.0) - (player_sprite.width() as f32 / 2.0),
+            y: ctx.conf.window_mode.height as f32 - player_sprite.height() as f32,
             hp: 100,
-            vel: 10.0,
+            vel: 250.0,
 			bounds: graphics::Rect {
 				x: 30.0,
 				y: 10.0,
@@ -82,10 +84,10 @@ impl MainState {
 			let mut enemy = entity::Entity {
 				entity_type: entity::EntityType::Enemy,
 				sprite: graphics::Image::new(ctx, "/texture/null_pointer_enemy.png").unwrap(),
-				x: 300.0 + 10.0 * i as f32,
-				y: 300.0,
+				x: 0.0 + 35.0 * i as f32,
+				y: 0.0,
 				hp: 1,
-				vel: 10.0,
+				vel: 100.0,
 				bounds: graphics::Rect {
 					x: 10.0,
 					y: 10.0,
@@ -93,8 +95,8 @@ impl MainState {
 					h: 80.0,
 				},
 				movement: Movement::Linear(
-					rng.gen::<f32>() - 0.5,
-					rng.gen::<f32>() - 0.5
+					rng.gen_range(-600.0, 600.0),
+					rng.gen_range(300.0, 1000.0),
 				),
 				lifetime: Lifetime::Milliseconds(10_000),
 				timer: 0,
@@ -131,19 +133,17 @@ impl event::EventHandler for MainState {
         //self.score_tex.f //graphics::Text::new(_ctx, &format!("Score: {}", self.score), _ctx.default_font)?;
 
         self.score_text = graphics::Text::new(_ctx, &format!("Score: {}", &self.score.to_string()), &self.font).unwrap();
+		
 		for e in &mut self.entities {
 			e.timer += self.delta_ms;
 			e.lifetime = match e.lifetime {
 				Lifetime::Forever => Lifetime::Forever,
 				Lifetime::Milliseconds(remaining) => Lifetime::Milliseconds(remaining - self.delta_ms as i64),
 			};
-			match e.entity_type {
-				EntityType::Enemy => println!("Lifetime = {:?}", e.lifetime),
-				_ => (),
-			}
+
 			match e.movement {
 				Movement::None => (),
-				Movement::Linear(x,y) => e.translate(x,y),
+				Movement::Linear(x,y) => e.translate(x / 1000_f32, y / 1000_f32),
 				Movement::Generated(func) => {
 					let (x, y) = func(e.timer);
 					e.translate(x, y);
@@ -151,7 +151,8 @@ impl event::EventHandler for MainState {
 			}
 			match e.entity_type {
 				entity::EntityType::Player => {
-					let vel= e.vel;
+					let vel= e.vel * ((self.delta_ms as f32) / 1000_f32);
+	
 					if self.input.left {
 						e.translate(-vel, 0.0);
 					}
