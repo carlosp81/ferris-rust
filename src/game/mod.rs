@@ -10,8 +10,7 @@ use std;
 
 mod entity;
 
-//entity::*;
-use self::entity::{Lifetime, EntityType};
+use self::entity::{Lifetime, EntityType, Movement};
 
 const DRAW_BOUNDING_BOXES: bool = true;
 
@@ -73,7 +72,9 @@ impl MainState {
 				w: 196.0,
 				h: 151.0,
 			},
+			movement: Movement::None,
 			lifetime: Lifetime::Forever,
+			timer: 0,
         };
 		let mut enemy = entity::Entity {
             entity_type: entity::EntityType::Enemy,
@@ -88,7 +89,16 @@ impl MainState {
 				w: 80.0,
 				h: 80.0,
 			},
+			movement: Movement::Generated(
+				|t| {
+					(
+						((t as f64 / 500.0).sin() * 3.0) as f32,
+						((t as f64 / 300.0).cos() * 5.0) as f32
+					)
+				}
+			),
 			lifetime: Lifetime::Milliseconds(10_000),
+			timer: 0,
         };
 		println!("Lifetime at start = {:?}", enemy.lifetime);
 		s.entities.push(player);
@@ -123,6 +133,7 @@ impl event::EventHandler for MainState {
 
         self.score_text = graphics::Text::new(_ctx, &format!("Score: {}", &self.score.to_string()), &self.font).unwrap();
 		for e in &mut self.entities {
+			e.timer += self.delta_ms;
 			match &mut e.lifetime {
 				Lifetime::Forever => (),
 				Lifetime::Milliseconds(remaining) => {
@@ -133,6 +144,14 @@ impl event::EventHandler for MainState {
 			match e.entity_type {
 				EntityType::Enemy => println!("Lifetime = {:?}", e.lifetime),
 				_ => (),
+			}
+			match e.movement {
+				Movement::None => (),
+				Movement::Linear(x,y) => e.translate(x,y),
+				Movement::Generated(func) => {
+					let (x, y) = func(e.timer);
+					e.translate(x, y);
+				},
 			}
 			match e.entity_type {
 				entity::EntityType::Player => {
