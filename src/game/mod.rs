@@ -1,7 +1,7 @@
 
 
 extern crate ggez;
-
+extern crate rand;
 
 use ggez::{Context, GameResult};
 use ggez::event::{self, Button, MouseState, Keycode, Mod, Axis};
@@ -11,6 +11,7 @@ use std;
 mod entity;
 
 use self::entity::{Lifetime, EntityType, Movement};
+use self::rand::Rng;
 
 const DRAW_BOUNDING_BOXES: bool = true;
 
@@ -76,33 +77,31 @@ impl MainState {
 			lifetime: Lifetime::Forever,
 			timer: 0,
         };
-		let mut enemy = entity::Entity {
-            entity_type: entity::EntityType::Enemy,
-			sprite: graphics::Image::new(ctx, "/texture/null_pointer_enemy.png").unwrap(),
-            x: 100.0,
-            y: 100.0,
-            hp: 1,
-            vel: 10.0,
-			bounds: graphics::Rect {
-				x: 10.0,
-				y: 10.0,
-				w: 80.0,
-				h: 80.0,
-			},
-			movement: Movement::Generated(
-				|t| {
-					(
-						((t as f64 / 500.0).sin() * 3.0) as f32,
-						((t as f64 / 300.0).cos() * 5.0) as f32
-					)
-				}
-			),
-			lifetime: Lifetime::Milliseconds(10_000),
-			timer: 0,
-        };
-		println!("Lifetime at start = {:?}", enemy.lifetime);
+		let mut rng = rand::thread_rng();
+		for i in 0..20 {		
+			let mut enemy = entity::Entity {
+				entity_type: entity::EntityType::Enemy,
+				sprite: graphics::Image::new(ctx, "/texture/null_pointer_enemy.png").unwrap(),
+				x: 300.0 + 10.0 * i as f32,
+				y: 300.0,
+				hp: 1,
+				vel: 10.0,
+				bounds: graphics::Rect {
+					x: 10.0,
+					y: 10.0,
+					w: 80.0,
+					h: 80.0,
+				},
+				movement: Movement::Linear(
+					rng.gen::<f32>() - 0.5,
+					rng.gen::<f32>() - 0.5
+				),
+				lifetime: Lifetime::Milliseconds(10_000),
+				timer: 0,
+			};
+			s.entities.push(enemy);
+		}
 		s.entities.push(player);
-		s.entities.push(enemy);
         Ok(s)
     }
 }
@@ -134,13 +133,10 @@ impl event::EventHandler for MainState {
         self.score_text = graphics::Text::new(_ctx, &format!("Score: {}", &self.score.to_string()), &self.font).unwrap();
 		for e in &mut self.entities {
 			e.timer += self.delta_ms;
-			match &mut e.lifetime {
-				Lifetime::Forever => (),
-				Lifetime::Milliseconds(remaining) => {
-					println!("Current = {:?}, delta_ms = {:?}", *remaining, self.delta_ms);
-					*remaining -= self.delta_ms as i64
-				},
-			}
+			e.lifetime = match e.lifetime {
+				Lifetime::Forever => Lifetime::Forever,
+				Lifetime::Milliseconds(remaining) => Lifetime::Milliseconds(remaining - self.delta_ms as i64),
+			};
 			match e.entity_type {
 				EntityType::Enemy => println!("Lifetime = {:?}", e.lifetime),
 				_ => (),
