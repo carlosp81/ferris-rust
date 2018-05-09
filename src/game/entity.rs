@@ -12,6 +12,12 @@ pub enum EntityType {
 	Player,
 }
 
+#[derive(Debug)]
+pub enum Lifetime {
+	Forever,
+	Milliseconds(i64),
+}
+
 pub struct Entity {
 	pub entity_type: EntityType,
     pub sprite: graphics::Image,
@@ -19,8 +25,9 @@ pub struct Entity {
     pub y: f32,
     pub hp: u8,
     pub vel: f32,
-	pub bounds: (f32, f32),	// (width, height) of bounding box, centered on middle of image
-}
+	pub bounds: graphics::Rect,
+	pub lifetime: Lifetime,
+	}
 
 impl Entity {
     pub fn translate(&mut self, dx: f32, dy: f32) {

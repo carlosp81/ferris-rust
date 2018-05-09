@@ -6,10 +6,14 @@ extern crate ggez;
 use ggez::{Context, GameResult};
 use ggez::event::{self, Button, MouseState, Keycode, Mod, Axis};
 use ggez::graphics;
-
 use std;
 
 mod entity;
+
+//entity::*;
+use self::entity::{Lifetime, EntityType};
+
+const DRAW_BOUNDING_BOXES: bool = true;
 
 struct Input {
     left: bool,
@@ -38,7 +42,7 @@ impl MainState {
         // will mount that directory so we can omit it in the path here.
         let font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 48)?;
         let score_text = graphics::Text::new(ctx, "Score: ", &font)?;
-
+		
         let mut s = MainState {
             score_text,
             frames: 0,
@@ -63,12 +67,34 @@ impl MainState {
             y: 0.0,
             hp: 100,
             vel: 10.0,
-			bounds: (256.0, 171.0),
+			bounds: graphics::Rect {
+				x: 30.0,
+				y: 10.0,
+				w: 196.0,
+				h: 151.0,
+			},
+			lifetime: Lifetime::Forever,
         };
+		let mut enemy = entity::Entity {
+            entity_type: entity::EntityType::Enemy,
+			sprite: graphics::Image::new(ctx, "/texture/null_pointer_enemy.png").unwrap(),
+            x: 100.0,
+            y: 100.0,
+            hp: 1,
+            vel: 10.0,
+			bounds: graphics::Rect {
+				x: 10.0,
+				y: 10.0,
+				w: 80.0,
+				h: 80.0,
+			},
+			lifetime: Lifetime::Milliseconds(10_000),
+        };
+		println!("Lifetime at start = {:?}", enemy.lifetime);
 		s.entities.push(player);
+		s.entities.push(enemy);
         Ok(s)
     }
-    
 }
 
 // Update state's elapsed ms and delta ms
@@ -76,7 +102,10 @@ fn update_time(state: &mut MainState) {
 	let now = std::time::SystemTime::now();
 	let difference = now.duration_since(std::time::UNIX_EPOCH).expect("Time went backwards");
 	let current_ms = difference.as_secs() * 1000 + difference.subsec_nanos() as u64 / 1_000_000;
-	state.delta_ms = current_ms - state.elapsed_ms;
+	state.delta_ms = match state.elapsed_ms {
+		0 => 0,
+		_ => current_ms - state.elapsed_ms,
+	};
 	state.elapsed_ms = current_ms;
 }
 
@@ -93,8 +122,18 @@ impl event::EventHandler for MainState {
         //self.score_tex.f //graphics::Text::new(_ctx, &format!("Score: {}", self.score), _ctx.default_font)?;
 
         self.score_text = graphics::Text::new(_ctx, &format!("Score: {}", &self.score.to_string()), &self.font).unwrap();
-
 		for e in &mut self.entities {
+			match &mut e.lifetime {
+				Lifetime::Forever => (),
+				Lifetime::Milliseconds(remaining) => {
+					println!("Current = {:?}, delta_ms = {:?}", *remaining, self.delta_ms);
+					*remaining -= self.delta_ms as i64
+				},
+			}
+			match e.entity_type {
+				EntityType::Enemy => println!("Lifetime = {:?}", e.lifetime),
+				_ => (),
+			}
 			match e.entity_type {
 				entity::EntityType::Player => {
 					let vel= e.vel;
@@ -119,6 +158,13 @@ impl event::EventHandler for MainState {
 				entity::EntityType::Bullet => (),
 			}
 		}
+		
+		// Kill off dead entities
+		self.entities.retain(|e| match e.lifetime {
+			Lifetime::Forever => true,
+			Lifetime::Milliseconds(r) => r > 0,
+		});
+		
         Ok(())
     }
 
@@ -133,10 +179,20 @@ impl event::EventHandler for MainState {
 		graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, 0.0 + (self.elapsed_ms/40%1920) as f32), 0.0)?;
 		graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, -1920.0 + (self.elapsed_ms/40 % 1920) as f32), 0.0)?;
 
-				// Draw all entities
-		for e in &self.entities {
+		// Draw all entities
+		for e in &mut self.entities {
 			let pos = graphics::Point2::new(e.x, e.y);
 			graphics::draw(ctx, &e.sprite, pos, 0.0)?;
+			if DRAW_BOUNDING_BOXES {
+			graphics::rectangle(ctx,
+				graphics::DrawMode::Line(1.0),
+				graphics::Rect {
+					x: e.x + e.bounds.x,
+					y: e.y + e.bounds.y,
+					w: e.bounds.w,
+					h: e.bounds.h}
+				)?;
+			}
 		}
 		
         graphics::present(ctx);
