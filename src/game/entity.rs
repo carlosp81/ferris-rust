@@ -5,6 +5,7 @@ extern crate ggez;
 
 use ggez::graphics;
 
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub enum EntityType {
 	Boss,
 	Bullet,
@@ -26,7 +27,6 @@ pub enum Movement {
 
 pub struct Entity {
 	pub entity_type: EntityType,
-    pub sprite: graphics::Image,
     pub x: f32,
     pub y: f32,
     pub hp: u8,

@@ -34,6 +34,7 @@ pub struct MainState {
     background: graphics::Image,
 	elapsed_ms: u64,
 	delta_ms: u64,
+	textures: std::collections::HashMap::<entity::EntityType, graphics::Image>,
 }
 
 impl MainState {
@@ -59,14 +60,17 @@ impl MainState {
             background: graphics::Image::new(ctx, "/texture/background_tiled.png").unwrap(),
 			elapsed_ms: 0,	//Elapsed time since state creation, in milliseconds
 			delta_ms: 0,	//Elapsed time since last frame, in milliseconds
+			textures: std::collections::HashMap::new(),
 		};
-		let player_sprite = graphics::Image::new(ctx, "/texture/crab.png").unwrap();
+		
+		s.textures.insert(entity::EntityType::Player, graphics::Image::new(ctx, "/texture/crab.png").unwrap() );
+		s.textures.insert(entity::EntityType::Enemy, graphics::Image::new(ctx, "/texture/null_pointer_enemy.png").unwrap() );
+		
 		
 		let mut player = entity::Entity {
             entity_type: entity::EntityType::Player,
-			sprite: player_sprite.clone(),
-            x: (ctx.conf.window_mode.width as f32 / 2.0) - (player_sprite.width() as f32 / 2.0),
-            y: ctx.conf.window_mode.height as f32 - player_sprite.height() as f32,
+		    x: (ctx.conf.window_mode.width as f32 / 2.0) - (s.textures[&entity::EntityType::Player].width() as f32 / 2.0),
+            y: ctx.conf.window_mode.height as f32 - s.textures[&entity::EntityType::Player].height() as f32,
             hp: 100,
             vel: 250.0,
 			bounds: graphics::Rect {
@@ -83,7 +87,6 @@ impl MainState {
 		for i in 0..20 {		
 			let mut enemy = entity::Entity {
 				entity_type: entity::EntityType::Enemy,
-				sprite: graphics::Image::new(ctx, "/texture/null_pointer_enemy.png").unwrap(),
 				x: 0.0 + 35.0 * i as f32,
 				y: 0.0,
 				hp: 1,
@@ -198,7 +201,7 @@ impl event::EventHandler for MainState {
 		// Draw all entities
 		for e in &mut self.entities {
 			let pos = graphics::Point2::new(e.x, e.y);
-			graphics::draw(ctx, &e.sprite, pos, 0.0)?;
+			graphics::draw(ctx, &self.textures[&e.entity_type], pos, 0.0)?;
 			if DRAW_BOUNDING_BOXES {
 			graphics::rectangle(ctx,
 				graphics::DrawMode::Line(1.0),
