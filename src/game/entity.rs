@@ -1,6 +1,4 @@
 
-
-
 extern crate ggez;
 
 use ggez::graphics;
@@ -26,6 +24,7 @@ pub enum Movement {
 }
 
 pub struct Entity {
+	pub text: graphics::Text,
 	pub entity_type: EntityType,
     pub x: f32,
     pub y: f32,

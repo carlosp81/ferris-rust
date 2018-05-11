@@ -30,20 +30,26 @@ pub struct MainState {
     entities: Vec<entity::Entity>,
 	input: Input,
     score: u32,
-    font: graphics::Font,
+    score_font: graphics::Font,
     background: graphics::Image,
 	elapsed_ms: u64,
 	delta_ms: u64,
 	textures: std::collections::HashMap::<entity::EntityType, graphics::Image>,
+
 }
 
 impl MainState {
     pub fn new(ctx: &mut Context) -> GameResult<MainState> {
         // The ttf file will be in your resources directory. Later, we
         // will mount that directory so we can omit it in the path here.
-        let font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 48)?;
-        let score_text = graphics::Text::new(ctx, "Score: ", &font)?;
-		
+        let score_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 48)?;
+       
+		let score_text = graphics::Text::new(ctx, "Score: ", &score_font)?;
+
+		let enemy_names = [
+			"NULL POINTER".to_string(),
+			"DANGLING REF".to_string()];
+
         let mut s = MainState {
             score_text,
             frames: 0,
@@ -56,7 +62,7 @@ impl MainState {
 				shoot: false,
 			},
             score: 0,
-            font,
+            score_font,
             background: graphics::Image::new(ctx, "/texture/background_tiled.png").unwrap(),
 			elapsed_ms: 0,	//Elapsed time since state creation, in milliseconds
 			delta_ms: 0,	//Elapsed time since last frame, in milliseconds
@@ -65,9 +71,11 @@ impl MainState {
 		
 		s.textures.insert(entity::EntityType::Player, graphics::Image::new(ctx, "/texture/crab.png").unwrap() );
 		s.textures.insert(entity::EntityType::Enemy, graphics::Image::new(ctx, "/texture/null_pointer_enemy.png").unwrap() );
-		
-		
+		 
+		let player_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 24)?;
+
 		let mut player = entity::Entity {
+			text: graphics::Text::new(ctx, "", &player_font)?,
             entity_type: entity::EntityType::Player,
 		    x: (ctx.conf.window_mode.width as f32 / 2.0) - (s.textures[&entity::EntityType::Player].width() as f32 / 2.0),
             y: ctx.conf.window_mode.height as f32 - s.textures[&entity::EntityType::Player].height() as f32,
@@ -84,8 +92,12 @@ impl MainState {
 			timer: 0,
         };
 		let mut rng = rand::thread_rng();
-		for i in 0..20 {		
+		for i in 0..20 {			
+			let enemy_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 14)?;
+
 			let mut enemy = entity::Entity {
+				text: graphics::Text::new(ctx, 
+					&enemy_names[rng.gen::<usize>() % enemy_names.len()].clone(), &enemy_font)?,
 				entity_type: entity::EntityType::Enemy,
 				x: 0.0 + 35.0 * i as f32,
 				y: 0.0,
@@ -135,7 +147,7 @@ impl event::EventHandler for MainState {
 		
         //self.score_tex.f //graphics::Text::new(_ctx, &format!("Score: {}", self.score), _ctx.default_font)?;
 
-        self.score_text = graphics::Text::new(_ctx, &format!("Score: {}", &self.score.to_string()), &self.font).unwrap();
+        self.score_text = graphics::Text::new(_ctx, &format!("Score: {}", &self.score.to_string()), &self.score_font).unwrap();
 		
 		for e in &mut self.entities {
 			e.timer += self.delta_ms;
@@ -201,7 +213,24 @@ impl event::EventHandler for MainState {
 		// Draw all entities
 		for e in &mut self.entities {
 			let pos = graphics::Point2::new(e.x, e.y);
-			graphics::draw(ctx, &self.textures[&e.entity_type], pos, 0.0)?;
+			let texture = &self.textures[&e.entity_type];
+			let text_size_div_2 =  graphics::Point2::new(e.text.width() as f32 / 2.0, e.text.height() as f32 / 2.0);
+			
+			
+			graphics::draw(ctx, texture, pos, 0.0)?;
+			let offset = 30.0;
+
+			let text_pos = graphics::Point2::new(
+				e.x + texture.width() as f32 + offset, 
+				e.y - offset);
+			//	, e.y);
+			
+			graphics::draw(ctx, &e.text, text_pos, 0.0)?;
+
+			graphics::line(ctx, &[
+    			graphics::Point2::new(text_pos.x - 5.0, text_pos.y + e.text.height() as f32),
+    			graphics::Point2::new(pos.x + texture.width() as f32, pos.y)], 1.0);
+
 			if DRAW_BOUNDING_BOXES {
 			graphics::rectangle(ctx,
 				graphics::DrawMode::Line(1.0),
