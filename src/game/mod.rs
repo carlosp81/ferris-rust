@@ -5,7 +5,7 @@ extern crate rand;
 
 use ggez::{Context, GameResult};
 use ggez::event::{self, Button, MouseState, Keycode, Mod, Axis};
-use ggez::graphics;
+use ggez::{audio, graphics};
 use std;
 
 mod entity;
@@ -35,7 +35,7 @@ pub struct MainState {
 	elapsed_ms: u64,
 	delta_ms: u64,
 	textures: std::collections::HashMap::<entity::EntityType, graphics::Image>,
-
+	bgm: audio::Source,
 }
 
 impl MainState {
@@ -67,6 +67,7 @@ impl MainState {
 			elapsed_ms: 0,	//Elapsed time since state creation, in milliseconds
 			delta_ms: 0,	//Elapsed time since last frame, in milliseconds
 			textures: std::collections::HashMap::new(),
+			bgm: audio::Source::new(ctx, "/sounds/Tejaswi-Hyperbola.ogg")?,
 		};
 		
 		s.textures.insert(entity::EntityType::Player, graphics::Image::new(ctx, "/texture/crab.png").unwrap() );
@@ -91,8 +92,10 @@ impl MainState {
 			lifetime: Lifetime::Forever,
 			timer: 0,
         };
+		
+		// Generate some enemies
 		let mut rng = rand::thread_rng();
-		for i in 0..20 {			
+		for i in 0..20 {
 			let enemy_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 14)?;
 
 			let mut enemy = entity::Entity {
@@ -119,6 +122,8 @@ impl MainState {
 			s.entities.push(enemy);
 		}
 		s.entities.push(player);
+		
+		s.bgm.play()?;
         Ok(s)
     }
 }
@@ -215,22 +220,26 @@ impl event::EventHandler for MainState {
 			let pos = graphics::Point2::new(e.x, e.y);
 			let texture = &self.textures[&e.entity_type];
 			let text_size_div_2 =  graphics::Point2::new(e.text.width() as f32 / 2.0, e.text.height() as f32 / 2.0);
-			
-			
+
+			// Draw the entity sprite
 			graphics::draw(ctx, texture, pos, 0.0)?;
-			let offset = 30.0;
-
-			let text_pos = graphics::Point2::new(
-				e.x + texture.width() as f32 + offset, 
-				e.y - offset);
-			//	, e.y);
 			
-			graphics::draw(ctx, &e.text, text_pos, 0.0)?;
+			// If this is an enemy, include a name tag.
+			if(e.entity_type == entity::EntityType::Enemy){
 
-			graphics::line(ctx, &[
-    			graphics::Point2::new(text_pos.x - 5.0, text_pos.y + e.text.height() as f32),
-    			graphics::Point2::new(pos.x + texture.width() as f32, pos.y)], 1.0);
 
+				let offset = 30.0;
+				let text_pos = graphics::Point2::new(
+					e.x + texture.width() as f32 + offset, 
+					e.y - offset);
+				//	, e.y);
+				graphics::draw(ctx, &e.text, text_pos, 0.0)?;
+				graphics::line(ctx, &[
+					graphics::Point2::new(text_pos.x - 5.0, text_pos.y + e.text.height() as f32),
+					graphics::Point2::new(pos.x + texture.width() as f32, pos.y)], 1.0);
+			}
+			
+			// Draw collision boxes if they are enabled.
 			if DRAW_BOUNDING_BOXES {
 			graphics::rectangle(ctx,
 				graphics::DrawMode::Line(1.0),
