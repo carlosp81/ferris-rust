@@ -13,8 +13,8 @@ mod entity;
 use self::entity::{Lifetime, EntityType, Movement};
 use self::rand::Rng;
 
-const PLAYER_BULLET_COOLDOWN: u64 = 250;
-const ENEMY_BULLET_COOLDOWN: u64 = 1_000;
+const PLAYER_BULLET_COOLDOWN: i64 = 250;
+const ENEMY_BULLET_COOLDOWN: i64 = 1_000;
 const DRAW_BOUNDING_BOXES: bool = false;
 
 const ENEMY_NAMES: [&str;4] = [
@@ -49,6 +49,7 @@ pub struct MainState {
 	bgm: audio::Source,
 	rng: rand::ThreadRng,
 	last_spawned: u64,
+	sfx: std::collections::HashMap::<&'static str, audio::Source>,
 }
 
 impl MainState {
@@ -79,12 +80,18 @@ impl MainState {
 			bgm: audio::Source::new(ctx, "/sounds/Tejaswi-Hyperbola.ogg")?,
 			rng: rand::thread_rng(),
 			last_spawned: 0,
+			sfx: std::collections::HashMap::new(),
 		};
 		
+		// Set up textures
 		s.textures.insert(entity::EntityType::Player, graphics::Image::new(ctx, "/texture/crab.png").unwrap() );
 		s.textures.insert(entity::EntityType::Enemy, graphics::Image::new(ctx, "/texture/enemy.png").unwrap() );
-		s.textures.insert(entity::EntityType::PlayerBullet, graphics::Image::new(ctx, "/texture/player_bullet.png").unwrap() );
-		 
+		s.textures.insert(entity::EntityType::PlayerBullet, graphics::Image::new(ctx, 
+		"/texture/player_bullet.png").unwrap() );
+		
+		// Set up sound effects
+		s.sfx.insert("player_shot", audio::Source::new(ctx, "/sounds/player_shot.wav")?);
+		
 		let player_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 24)?;
 
 		let mut player = entity::Entity {
@@ -108,7 +115,6 @@ impl MainState {
         };
 		
 		s.entities.push(player);
-		
 		s.bgm.play()?;
         Ok(s)
     }
@@ -126,35 +132,29 @@ fn update_time(state: &mut MainState) {
 	state.elapsed_ms = current_ms;
 }
 
+// Spawns bullets for the player
 fn player_bullet_spawner(state: &mut MainState, x: f32, y: f32) {
-
-	if state.input.shoot {
-		let bullet = entity::Entity {
-			text: state.score_text.clone(),
-			entity_type: entity::EntityType::PlayerBullet,
-			x: x as f32 + (state.textures[&entity::EntityType::PlayerBullet].width() as f32 / 2.0),
-			y: y,
-			hp: 1,
-			vel: 5000.0,
-			bounds: graphics::Rect {
-				x: 0.0,
-				y: 0.0,
-				w: 16.0,
-				h: 16.0,
-			},
-
-			movement: Movement::Linear(0.0, -10_000.0),
-
-			lifetime: Lifetime::Milliseconds(2_000),
-			seed: 0.0,
-			timer: 0,
-			bullet_cooldown: 0,
-		};
-		state.entities.push(bullet);
-
-	}
-
-
+	let bullet = entity::Entity {
+		text: state.score_text.clone(),
+		entity_type: entity::EntityType::PlayerBullet,
+		x: x as f32 + (state.textures[&entity::EntityType::Player].width() as f32 / 2.0) - (state.textures[&entity::EntityType::PlayerBullet].width() as f32 / 2.0),
+		y: y - (state.textures[&entity::EntityType::PlayerBullet].height() as f32 / 2.0),
+		hp: 1,
+		vel: 5000.0,
+		bounds: graphics::Rect {
+			x: 0.0,
+			y: 0.0,
+			w: 50.0,
+			h: 50.0,
+		},
+		movement: Movement::Linear(0.0, -10_000.0),
+		lifetime: Lifetime::Milliseconds(2_000),
+		seed: 0.0,
+		timer: 0,
+		bullet_cooldown: 0,
+	};
+	state.entities.push(bullet);
+	state.sfx["player_shot"].play();
 }
 
 // Generates enemies randomly over time
@@ -257,16 +257,17 @@ impl event::EventHandler for MainState {
         //self.score_tex.f //graphics::Text::new(_ctx, &format!("Score: {}", self.score), _ctx.default_font)?;
 
         self.score_text = graphics::Text::new(_ctx, &format!("Score: {}", &self.score.to_string()), &self.score_font).unwrap();
-		
-		let mut player_x = 0.0;
-		let mut player_y = 0.0;
-
+	
 		for e in &mut self.entities {
 			e.timer += self.delta_ms;
 			e.lifetime = match e.lifetime {
 				Lifetime::Forever => Lifetime::Forever,
 				Lifetime::Milliseconds(remaining) => Lifetime::Milliseconds(remaining - self.delta_ms as i64),
 			};
+			e.bullet_cooldown -= self.delta_ms as i64;
+			if e.bullet_cooldown < 0 {
+				e.bullet_cooldown = 0;
+			}
 			
 			match e.movement {
 				Movement::None => (),
@@ -293,18 +294,25 @@ impl event::EventHandler for MainState {
 					if self.input.down {
 						e.translate(0.0, vel);
 					}
-					player_x = e.x;
-					player_y = e.y;
 				},
-				entity::EntityType::Enemy => (),
+				entity::EntityType::Enemy => {
+					//enemy_bullet_spawner()
+				},
 				entity::EntityType::Boss => (),
 				entity::EntityType::PlayerBullet => (),
 				entity::EntityType::EnemyBullet => (),
 			}
 		}
-		
-		player_bullet_spawner(self, player_x, player_y);
 
+		if self.input.shoot {
+			if self.entities[0].bullet_cooldown == 0 {
+				self.entities[0].bullet_cooldown = PLAYER_BULLET_COOLDOWN;
+				let x = self.entities[0].x;
+				let y = self.entities[0].y;
+				player_bullet_spawner(self, x, y);
+			}
+		}
+		
 		// Kill off dead entities
 		self.entities.retain(|e| match e.lifetime {
 			Lifetime::Forever => true,
@@ -424,6 +432,7 @@ impl event::EventHandler for MainState {
         }
 		if keycode == ggez::event::Keycode::Space {
 			self.input.shoot = false;
+			self.entities[0].bullet_cooldown = 0;
 		}
     }
 }

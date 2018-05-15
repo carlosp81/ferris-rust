@@ -45,7 +45,7 @@ pub struct Entity {
 	pub lifetime: Lifetime,
 	pub seed: f64,
 	pub timer: u64,
-	pub bullet_cooldown: u64,
+	pub bullet_cooldown: i64,
 }
 
 impl Entity {
