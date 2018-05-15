@@ -15,6 +15,11 @@ use self::rand::Rng;
 
 const DRAW_BOUNDING_BOXES: bool = true;
 
+const ENEMY_NAMES: [&str;2] = [
+	"NULL POINTER",
+	"DANGLING REF",
+];
+
 struct Input {
     left: bool,
     right: bool,
@@ -36,6 +41,8 @@ pub struct MainState {
 	delta_ms: u64,
 	textures: std::collections::HashMap::<entity::EntityType, graphics::Image>,
 	bgm: audio::Source,
+	rng: rand::ThreadRng,
+	last_spawned: u64,
 }
 
 impl MainState {
@@ -45,10 +52,6 @@ impl MainState {
         let score_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 48)?;
        
 		let score_text = graphics::Text::new(ctx, "Score: ", &score_font)?;
-
-		let enemy_names = [
-			"NULL POINTER".to_string(),
-			"DANGLING REF".to_string()];
 
         let mut s = MainState {
             score_text,
@@ -68,10 +71,12 @@ impl MainState {
 			delta_ms: 0,	//Elapsed time since last frame, in milliseconds
 			textures: std::collections::HashMap::new(),
 			bgm: audio::Source::new(ctx, "/sounds/Tejaswi-Hyperbola.ogg")?,
+			rng: rand::thread_rng(),
+			last_spawned: 0,
 		};
 		
 		s.textures.insert(entity::EntityType::Player, graphics::Image::new(ctx, "/texture/crab.png").unwrap() );
-		s.textures.insert(entity::EntityType::Enemy, graphics::Image::new(ctx, "/texture/null_pointer_enemy.png").unwrap() );
+		s.textures.insert(entity::EntityType::Enemy, graphics::Image::new(ctx, "/texture/enemy.png").unwrap() );
 		 
 		let player_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 24)?;
 
@@ -83,44 +88,16 @@ impl MainState {
             hp: 100,
             vel: 250.0,
 			bounds: graphics::Rect {
-				x: 30.0,
-				y: 10.0,
-				w: 196.0,
-				h: 151.0,
+				x: 25.0,
+				y: 15.0,
+				w: 80.0,
+				h: 48.0,
 			},
 			movement: Movement::None,
 			lifetime: Lifetime::Forever,
 			timer: 0,
         };
 		
-		// Generate some enemies
-		let mut rng = rand::thread_rng();
-		for i in 0..20 {
-			let enemy_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 14)?;
-
-			let mut enemy = entity::Entity {
-				text: graphics::Text::new(ctx, 
-					&enemy_names[rng.gen::<usize>() % enemy_names.len()].clone(), &enemy_font)?,
-				entity_type: entity::EntityType::Enemy,
-				x: 0.0 + 35.0 * i as f32,
-				y: 0.0,
-				hp: 1,
-				vel: 100.0,
-				bounds: graphics::Rect {
-					x: 10.0,
-					y: 10.0,
-					w: 80.0,
-					h: 80.0,
-				},
-				movement: Movement::Linear(
-					rng.gen_range(-600.0, 600.0),
-					rng.gen_range(300.0, 1000.0),
-				),
-				lifetime: Lifetime::Milliseconds(10_000),
-				timer: 0,
-			};
-			s.entities.push(enemy);
-		}
 		s.entities.push(player);
 		
 		s.bgm.play()?;
@@ -140,6 +117,40 @@ fn update_time(state: &mut MainState) {
 	state.elapsed_ms = current_ms;
 }
 
+// Generates enemies randomly over time
+fn enemy_spawner(state: &mut MainState, ctx: &mut Context) {
+	// Spawn every second
+	if(state.elapsed_ms - state.last_spawned > 1_000){
+		state.last_spawned = state.elapsed_ms;
+		
+		let enemy_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 14);
+
+		let name = ENEMY_NAMES[state.rng.gen::<usize>() % ENEMY_NAMES.len()].clone();
+		
+		let mut enemy = entity::Entity {
+			text: graphics::Text::new(ctx, name, &enemy_font.unwrap()).unwrap(),
+			entity_type: entity::EntityType::Enemy,
+			x: state.rng.gen_range(0.0, 720.0),
+			y: -100.0,
+			hp: 1,
+			vel: 100.0,
+			bounds: graphics::Rect {
+				x: 18.0,
+				y: 5.0,
+				w: 44.0,
+				h: 60.0,
+			},
+			movement: Movement::Linear(
+				state.rng.gen_range(-600.0, 600.0),
+				state.rng.gen_range(300.0, 1000.0),
+			),
+			lifetime: Lifetime::Milliseconds(100_000),
+			timer: 0,
+		};
+		state.entities.push(enemy);
+	}
+}
+		
 // Then we implement the `ggez:event::EventHandler` trait on it, which
 // requires callbacks for updating and drawing the game state each frame.
 //
@@ -149,6 +160,8 @@ impl event::EventHandler for MainState {
     fn update(&mut self, _ctx: &mut Context) -> GameResult<()> {
         
 		update_time(self);
+
+		enemy_spawner(self, _ctx);
 		
         //self.score_tex.f //graphics::Text::new(_ctx, &format!("Score: {}", self.score), _ctx.default_font)?;
 
