@@ -13,7 +13,7 @@ mod entity;
 use self::entity::{Lifetime, EntityType, Movement};
 use self::rand::Rng;
 
-const DRAW_BOUNDING_BOXES: bool = true;
+const DRAW_BOUNDING_BOXES: bool = false;
 
 const ENEMY_NAMES: [&str;2] = [
 	"NULL POINTER",
@@ -127,7 +127,7 @@ fn enemy_spawner(state: &mut MainState, ctx: &mut Context) {
 
 		let name = ENEMY_NAMES[state.rng.gen::<usize>() % ENEMY_NAMES.len()].clone();
 		
-		let mut enemy = entity::Entity {
+		let enemy = entity::Entity {
 			text: graphics::Text::new(ctx, name, &enemy_font.unwrap()).unwrap(),
 			entity_type: entity::EntityType::Enemy,
 			x: state.rng.gen_range(0.0, 720.0),
@@ -150,6 +150,42 @@ fn enemy_spawner(state: &mut MainState, ctx: &mut Context) {
 		state.entities.push(enemy);
 	}
 }
+
+// Generates enemies randomly over time
+fn collision_detection(state: &mut MainState) {
+	// Iterate through subject entities
+	for a in 0..state.entities.len() {
+		match state.entities[a].entity_type {
+			EntityType::Player => {
+				for b in 0..state.entities.len() {
+					match state.entities[b].entity_type {
+						EntityType::Enemy => {
+							// If bounding boxes collide
+							let e1_x = state.entities[a].x + state.entities[a].bounds.x;
+							let e1_w = state.entities[a].bounds.w;
+							let e1_y = state.entities[a].y + state.entities[a].bounds.y;
+							let e1_h = state.entities[a].bounds.h;
+							let e2_x = state.entities[b].x + state.entities[b].bounds.x;
+							let e2_w = state.entities[b].bounds.w;
+							let e2_y = state.entities[b].y + state.entities[b].bounds.y;
+							let e2_h = state.entities[b].bounds.h;
+							if (e1_x < e2_x + e2_w &&
+								e1_x + e1_w > e2_x &&
+								e1_y < e2_y + e2_h &&
+								e1_h + e1_y > e2_y){
+								let e = &mut state.entities[a];
+								e.lifetime = Lifetime::Milliseconds(1);
+							}
+						},
+						_ => (),
+					}
+				}
+			},
+			EntityType::Bullet => (),
+			_ => (),
+		}
+	}
+}
 		
 // Then we implement the `ggez:event::EventHandler` trait on it, which
 // requires callbacks for updating and drawing the game state each frame.
@@ -160,8 +196,8 @@ impl event::EventHandler for MainState {
     fn update(&mut self, _ctx: &mut Context) -> GameResult<()> {
         
 		update_time(self);
-
 		enemy_spawner(self, _ctx);
+		collision_detection(self);
 		
         //self.score_tex.f //graphics::Text::new(_ctx, &format!("Score: {}", self.score), _ctx.default_font)?;
 
@@ -298,6 +334,9 @@ impl event::EventHandler for MainState {
         }
 		if keycode == ggez::event::Keycode::Space {
 			self.input.shoot = true;
+		}
+		if keycode == ggez::event::Keycode::Escape {
+			_ctx.quit();
 		}
     }
     
