@@ -1,7 +1,9 @@
 
 extern crate ggez;
+extern crate rand;
 
 use ggez::graphics;
+use self::rand::Rng;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum EntityType {
@@ -17,10 +19,17 @@ pub enum Lifetime {
 	Milliseconds(i64),
 }
 
+// An entity has one of three movement types:
+// - None: The entity is static on screen (text/effects)
+// - Linear: The entity has a constant x and y velocity.
+// - Generated: The entity will use the lambda function to generate an x
+// and y translation value every time it updates. The first parameter is
+// the ms elapsed since the entity spawned, the second is a random number
+// generator, and the third is a unique seed value between -1.0 and 1.0.
 pub enum Movement {
 	None,
 	Linear(f32, f32),
-	Generated(fn(u64)->(f32, f32)),
+	Generated(fn(u64,&mut rand::ThreadRng, f64)->(f32, f32)),
 }
 
 pub struct Entity {
@@ -33,6 +42,7 @@ pub struct Entity {
 	pub movement: Movement,
 	pub bounds: graphics::Rect,
 	pub lifetime: Lifetime,
+	pub seed: f64,
 	pub timer: u64,
 }
 

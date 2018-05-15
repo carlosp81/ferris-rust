@@ -15,9 +15,11 @@ use self::rand::Rng;
 
 const DRAW_BOUNDING_BOXES: bool = false;
 
-const ENEMY_NAMES: [&str;2] = [
+const ENEMY_NAMES: [&str;4] = [
 	"NULL POINTER",
 	"DANGLING REF",
+	"SEGFAULT",
+	"DOUBLE FREE",
 ];
 
 struct Input {
@@ -95,6 +97,7 @@ impl MainState {
 			},
 			movement: Movement::None,
 			lifetime: Lifetime::Forever,
+			seed: 0.0,
 			timer: 0,
         };
 		
@@ -140,11 +143,24 @@ fn enemy_spawner(state: &mut MainState, ctx: &mut Context) {
 				w: 44.0,
 				h: 60.0,
 			},
-			movement: Movement::Linear(
+			movement: Movement::Generated(
+				|t,r,s|{
+					(
+						( (t as f64) / 1000.0 + r.gen_range(-(std::f64::consts::PI), std::f64::consts::PI) ).sin() as f32,
+						(
+							1.0 +
+							(
+								(t as f64) / 900.0 + s * 10.0).sin()
+						) as f32
+					)
+				}
+			),
+			/*movement: Movement::Linear(
 				state.rng.gen_range(-600.0, 600.0),
 				state.rng.gen_range(300.0, 1000.0),
-			),
+			),*/
 			lifetime: Lifetime::Milliseconds(100_000),
+			seed: state.rng.gen_range(-1.0, 1.0),
 			timer: 0,
 		};
 		state.entities.push(enemy);
@@ -214,7 +230,7 @@ impl event::EventHandler for MainState {
 				Movement::None => (),
 				Movement::Linear(x,y) => e.translate(x / 1000_f32, y / 1000_f32),
 				Movement::Generated(func) => {
-					let (x, y) = func(e.timer);
+					let (x, y) = func(e.timer, &mut self.rng, e.seed);
 					e.translate(x, y);
 				},
 			}
