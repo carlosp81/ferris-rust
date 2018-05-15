@@ -8,7 +8,8 @@ use self::rand::Rng;
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum EntityType {
 	Boss,
-	Bullet,
+	EnemyBullet,
+	PlayerBullet,
 	Enemy,
 	Player,
 }
@@ -44,6 +45,7 @@ pub struct Entity {
 	pub lifetime: Lifetime,
 	pub seed: f64,
 	pub timer: u64,
+	pub bullet_cooldown: u64,
 }
 
 impl Entity {

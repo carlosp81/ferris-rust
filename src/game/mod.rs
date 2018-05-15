@@ -13,6 +13,8 @@ mod entity;
 use self::entity::{Lifetime, EntityType, Movement};
 use self::rand::Rng;
 
+const PLAYER_BULLET_COOLDOWN: u64 = 250;
+const ENEMY_BULLET_COOLDOWN: u64 = 1_000;
 const DRAW_BOUNDING_BOXES: bool = false;
 
 const ENEMY_NAMES: [&str;4] = [
@@ -21,6 +23,8 @@ const ENEMY_NAMES: [&str;4] = [
 	"SEGFAULT",
 	"DOUBLE FREE",
 ];
+
+
 
 struct Input {
     left: bool,
@@ -79,6 +83,7 @@ impl MainState {
 		
 		s.textures.insert(entity::EntityType::Player, graphics::Image::new(ctx, "/texture/crab.png").unwrap() );
 		s.textures.insert(entity::EntityType::Enemy, graphics::Image::new(ctx, "/texture/enemy.png").unwrap() );
+		s.textures.insert(entity::EntityType::PlayerBullet, graphics::Image::new(ctx, "/texture/player_bullet.png").unwrap() );
 		 
 		let player_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 24)?;
 
@@ -99,6 +104,7 @@ impl MainState {
 			lifetime: Lifetime::Forever,
 			seed: 0.0,
 			timer: 0,
+			bullet_cooldown: PLAYER_BULLET_COOLDOWN,
         };
 		
 		s.entities.push(player);
@@ -120,10 +126,41 @@ fn update_time(state: &mut MainState) {
 	state.elapsed_ms = current_ms;
 }
 
+fn player_bullet_spawner(state: &mut MainState, x: f32, y: f32) {
+
+	if state.input.shoot {
+		let bullet = entity::Entity {
+			text: state.score_text.clone(),
+			entity_type: entity::EntityType::PlayerBullet,
+			x: x as f32 + (state.textures[&entity::EntityType::PlayerBullet].width() as f32 / 2.0),
+			y: y,
+			hp: 1,
+			vel: 5000.0,
+			bounds: graphics::Rect {
+				x: 0.0,
+				y: 0.0,
+				w: 16.0,
+				h: 16.0,
+			},
+
+			movement: Movement::Linear(0.0, -10_000.0),
+
+			lifetime: Lifetime::Milliseconds(2_000),
+			seed: 0.0,
+			timer: 0,
+			bullet_cooldown: 0,
+		};
+		state.entities.push(bullet);
+
+	}
+
+
+}
+
 // Generates enemies randomly over time
 fn enemy_spawner(state: &mut MainState, ctx: &mut Context) {
-	// Spawn every second
-	if(state.elapsed_ms - state.last_spawned > 1_000){
+	// Spawn randomly between a time range on a chance.
+	if state.elapsed_ms - state.last_spawned > state.rng.gen_range(500, 3_000) {
 		state.last_spawned = state.elapsed_ms;
 		
 		let enemy_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 14);
@@ -162,6 +199,7 @@ fn enemy_spawner(state: &mut MainState, ctx: &mut Context) {
 			lifetime: Lifetime::Milliseconds(100_000),
 			seed: state.rng.gen_range(-1.0, 1.0),
 			timer: 0,
+			bullet_cooldown: ENEMY_BULLET_COOLDOWN,
 		};
 		state.entities.push(enemy);
 	}
@@ -185,10 +223,10 @@ fn collision_detection(state: &mut MainState) {
 							let e2_w = state.entities[b].bounds.w;
 							let e2_y = state.entities[b].y + state.entities[b].bounds.y;
 							let e2_h = state.entities[b].bounds.h;
-							if (e1_x < e2_x + e2_w &&
+							if e1_x < e2_x + e2_w &&
 								e1_x + e1_w > e2_x &&
 								e1_y < e2_y + e2_h &&
-								e1_h + e1_y > e2_y){
+								e1_h + e1_y > e2_y {
 								let e = &mut state.entities[a];
 								e.lifetime = Lifetime::Milliseconds(1);
 							}
@@ -197,7 +235,8 @@ fn collision_detection(state: &mut MainState) {
 					}
 				}
 			},
-			EntityType::Bullet => (),
+			EntityType::PlayerBullet => (),
+			EntityType::EnemyBullet => (),
 			_ => (),
 		}
 	}
@@ -214,18 +253,21 @@ impl event::EventHandler for MainState {
 		update_time(self);
 		enemy_spawner(self, _ctx);
 		collision_detection(self);
-		
+					
         //self.score_tex.f //graphics::Text::new(_ctx, &format!("Score: {}", self.score), _ctx.default_font)?;
 
         self.score_text = graphics::Text::new(_ctx, &format!("Score: {}", &self.score.to_string()), &self.score_font).unwrap();
 		
+		let mut player_x = 0.0;
+		let mut player_y = 0.0;
+
 		for e in &mut self.entities {
 			e.timer += self.delta_ms;
 			e.lifetime = match e.lifetime {
 				Lifetime::Forever => Lifetime::Forever,
 				Lifetime::Milliseconds(remaining) => Lifetime::Milliseconds(remaining - self.delta_ms as i64),
 			};
-
+			
 			match e.movement {
 				Movement::None => (),
 				Movement::Linear(x,y) => e.translate(x / 1000_f32, y / 1000_f32),
@@ -236,6 +278,7 @@ impl event::EventHandler for MainState {
 			}
 			match e.entity_type {
 				entity::EntityType::Player => {
+					
 					let vel= e.vel * ((self.delta_ms as f32) / 1000_f32);
 	
 					if self.input.left {
@@ -250,16 +293,18 @@ impl event::EventHandler for MainState {
 					if self.input.down {
 						e.translate(0.0, vel);
 					}
-					if self.input.shoot {
-						// TODO: Spawn bullets.
-					}
+					player_x = e.x;
+					player_y = e.y;
 				},
 				entity::EntityType::Enemy => (),
 				entity::EntityType::Boss => (),
-				entity::EntityType::Bullet => (),
+				entity::EntityType::PlayerBullet => (),
+				entity::EntityType::EnemyBullet => (),
 			}
 		}
 		
+		player_bullet_spawner(self, player_x, player_y);
+
 		// Kill off dead entities
 		self.entities.retain(|e| match e.lifetime {
 			Lifetime::Forever => true,
