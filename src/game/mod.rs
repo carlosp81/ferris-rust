@@ -15,7 +15,10 @@ use self::rand::Rng;
 
 const PLAYER_BULLET_COOLDOWN: i64 = 250;
 const ENEMY_BULLET_COOLDOWN: i64 = 2_000;
-const DRAW_BOUNDING_BOXES: bool = true;
+const DRAW_BOUNDING_BOXES: bool = false;
+const ENEMY_SPAWN_MIN_TIME: u64 = 500; //500 is good
+const ENEMY_SPAWN_MAX_TIME: u64 = 5000; //5000 is good
+
 
 const ENEMY_NAMES: [&str;4] = [
 	"NULL POINTER",
@@ -151,7 +154,7 @@ fn player_bullet_spawner(state: &mut MainState, x: f32, y: f32) {
 			w: 50.0,
 			h: 50.0,
 		},
-		movement: Movement::Linear(0.0, -10_000.0),
+		movement: Movement::Linear(0.0, -7_000.0),
 		lifetime: Lifetime::Milliseconds(2_000),
 		seed: 0.0,
 		timer: 0,
@@ -177,7 +180,7 @@ fn enemy_bullet_spawner(state: &mut MainState, x: f32, y: f32) {
 			w: 25.0,
 			h: 25.0,
 		},
-		movement: Movement::Linear(0.0, 3_000.0),
+		movement: Movement::Linear(0.0, 4_000.0),
 		lifetime: Lifetime::Milliseconds(8_000),
 		seed: 0.0,
 		timer: 0,
@@ -191,7 +194,7 @@ fn enemy_bullet_spawner(state: &mut MainState, x: f32, y: f32) {
 // Generates enemies randomly over time
 fn enemy_spawner(state: &mut MainState, ctx: &mut Context) {
 	// Spawn randomly between a time range on a chance.
-	if state.elapsed_ms - state.last_spawned > state.rng.gen_range(500, 5_000) {
+	if state.elapsed_ms - state.last_spawned > state.rng.gen_range(ENEMY_SPAWN_MIN_TIME, ENEMY_SPAWN_MAX_TIME) {
 		state.last_spawned = state.elapsed_ms;
 		
 		let enemy_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 14);
@@ -214,11 +217,11 @@ fn enemy_spawner(state: &mut MainState, ctx: &mut Context) {
 			movement: Movement::Generated(
 				|t,r,s|{
 					(
-						( (t as f64) / 1000.0 + r.gen_range(-(std::f64::consts::PI), std::f64::consts::PI) ).sin() as f32,
+						( ( (t as f64) / 1000.0 + s * 1000.0 ).sin() * 1.0 ) as f32,
 						(
 							1.0 +
 							(
-								(t as f64) / 900.0 + s * 10.0).sin()
+								(t as f64) / 900.0 + s * 100.0).sin()
 						) as f32
 					)
 				}
@@ -388,7 +391,7 @@ impl event::EventHandler for MainState {
 				entity::EntityType::Boss => (),
 				entity::EntityType::PlayerBullet => {
 					let player_bullet = &mut self.entities[i];
-					player_bullet.angle = 10.0;
+					player_bullet.angle += self.delta_ms as f32 / 100.0;
 				},
 				entity::EntityType::EnemyBullet => (),
 			}
@@ -423,6 +426,10 @@ impl event::EventHandler for MainState {
 		graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, 0.0 + (self.elapsed_ms/40%1920) as f32), 0.0)?;
 		graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, -1920.0 + (self.elapsed_ms/40 % 1920) as f32), 0.0)?;
 
+		let player_x = self.entities[0].x;
+		let player_y = self.entities[0].y;
+		println!("Player x = {}, Player y = {}", player_x / 10.0, player_y / 50.0 - 5.0);
+		
 		// Draw all entities
 		for e in &mut self.entities {
 			let pos = graphics::Point2::new(e.x, e.y);
@@ -430,16 +437,19 @@ impl event::EventHandler for MainState {
 			let text_size_div_2 =  graphics::Point2::new(e.text.width() as f32 / 2.0, e.text.height() as f32 / 2.0);
 
 			// Draw the entity sprite axis-aligned
-			graphics::draw(ctx, texture, pos, e.angle)?;
+			//graphics::draw(ctx, texture, pos, 0.0)?;
 			
 			// Draw the entity sprite rotated if needed
-			/*if e.angle != 0.0 {
+			if e.angle == 0.0 {
 				graphics::draw(ctx, texture, pos, e.angle)?;
-			}
+			}  
 			else {
-				let new_angle = e.angle - std::f64::consts::PI * (45.0/180);
-				x_offset = new_angle ( texture.width() *  ) as f32;
-			}*/
+				let half_width = texture.width() as f64 / 2.0;
+				let angle = e.angle as f64 + (5.0 * std::f64::consts::PI / 4.0);
+				let x = (half_width + half_width * (2.0_f64).sqrt() * angle.cos()) as f32;
+				let y = (half_width + half_width * (2.0_f64).sqrt() * angle.sin()) as f32;
+				graphics::draw(ctx, texture, graphics::Point2::new(e.x + x, e.y+ y), e.angle);
+			}
 			
 			// If this is an enemy, include a name tag.
 			if(e.entity_type == entity::EntityType::Enemy){
