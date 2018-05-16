@@ -97,7 +97,7 @@ impl MainState {
     pub fn new(ctx: &mut Context) -> GameResult<MainState> {
         // The ttf file will be in your resources directory. Later, we
         // will mount that directory so we can omit it in the path here.
-        let score_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 48)?;
+        let score_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 32)?;
        
 		let score_text = graphics::Text::new(ctx, "Score: ", &score_font)?;
 
@@ -320,6 +320,8 @@ fn collision_detection(state: &mut MainState) {
 								for enemy_idx in 0..state.entities.len() {
 									if state.entities[enemy_idx].entity_type == EntityType::Enemy {
 										state.entities[enemy_idx].lifetime = Lifetime::Milliseconds(0);
+										// Gain score points.
+										state.score += 10;
 									}
 								}
 								state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
@@ -341,6 +343,8 @@ fn collision_detection(state: &mut MainState) {
 							if colliding(state, entity_idx, threat_idx) {
 								state.entities[entity_idx].lifetime = Lifetime::Milliseconds(0);
 								state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
+								// Gain score points
+								state.score += 10;
 							}
 						},
 						_ => (),
@@ -552,7 +556,7 @@ impl event::EventHandler for MainState {
 				)?;
 			}
 		}
-		
+        graphics::draw(ctx, &self.score_text, graphics::Point2::new(0.0, 0.0), 0.0)?;
         graphics::present(ctx);
 
         self.frames += 1;
