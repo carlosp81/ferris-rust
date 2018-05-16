@@ -14,8 +14,8 @@ use self::entity::{Lifetime, EntityType, Movement};
 use self::rand::Rng;
 
 const PLAYER_BULLET_COOLDOWN: i64 = 250;
-const ENEMY_BULLET_COOLDOWN: i64 = 1_000;
-const DRAW_BOUNDING_BOXES: bool = false;
+const ENEMY_BULLET_COOLDOWN: i64 = 2_000;
+const DRAW_BOUNDING_BOXES: bool = true;
 
 const ENEMY_NAMES: [&str;4] = [
 	"NULL POINTER",
@@ -88,6 +88,9 @@ impl MainState {
 		s.textures.insert(entity::EntityType::Enemy, graphics::Image::new(ctx, "/texture/enemy.png").unwrap() );
 		s.textures.insert(entity::EntityType::PlayerBullet, graphics::Image::new(ctx, 
 		"/texture/player_bullet.png").unwrap() );
+		s.textures.insert(entity::EntityType::EnemyBullet, graphics::Image::new(ctx, 
+		"/texture/enemy_bullet.png").unwrap() );
+
 		
 		// Set up sound effects
 		s.sfx.insert("player_shot", audio::Source::new(ctx, "/sounds/player_shot.wav")?);
@@ -100,7 +103,7 @@ impl MainState {
 		    x: (ctx.conf.window_mode.width as f32 / 2.0) - (s.textures[&entity::EntityType::Player].width() as f32 / 2.0),
             y: ctx.conf.window_mode.height as f32 - s.textures[&entity::EntityType::Player].height() as f32,
             hp: 100,
-            vel: 250.0,
+            vel: 375.0,
 			bounds: graphics::Rect {
 				x: 25.0,
 				y: 15.0,
@@ -112,6 +115,7 @@ impl MainState {
 			seed: 0.0,
 			timer: 0,
 			bullet_cooldown: PLAYER_BULLET_COOLDOWN,
+			angle: 0.0,
         };
 		
 		s.entities.push(player);
@@ -152,15 +156,42 @@ fn player_bullet_spawner(state: &mut MainState, x: f32, y: f32) {
 		seed: 0.0,
 		timer: 0,
 		bullet_cooldown: 0,
+		angle: 0.0,
 	};
 	state.entities.push(bullet);
 	state.sfx["player_shot"].play();
 }
 
+// Spawns bullets for the enemy
+fn enemy_bullet_spawner(state: &mut MainState, x: f32, y: f32) {
+	let bullet = entity::Entity {
+		text: state.score_text.clone(),
+		entity_type: entity::EntityType::EnemyBullet,
+		x: x as f32 + state.textures[&entity::EntityType::Enemy].width() as f32 / 2.0 - state.textures[&entity::EntityType::EnemyBullet].width() as f32 / 2.0,
+		y: y + state.textures[&entity::EntityType::Enemy].height() as f32 / 2.0 - state.textures[&entity::EntityType::EnemyBullet].height() as f32 / 2.0,
+		hp: 1,
+		vel: 1000.0,
+		bounds: graphics::Rect {
+			x: 0.0,
+			y: 0.0,
+			w: 25.0,
+			h: 25.0,
+		},
+		movement: Movement::Linear(0.0, 3_000.0),
+		lifetime: Lifetime::Milliseconds(8_000),
+		seed: 0.0,
+		timer: 0,
+		bullet_cooldown: 0,
+		angle: 0.0,
+	};
+	state.entities.push(bullet);
+	//state.sfx["player_shot"].play();
+}
+
 // Generates enemies randomly over time
 fn enemy_spawner(state: &mut MainState, ctx: &mut Context) {
 	// Spawn randomly between a time range on a chance.
-	if state.elapsed_ms - state.last_spawned > state.rng.gen_range(500, 3_000) {
+	if state.elapsed_ms - state.last_spawned > state.rng.gen_range(500, 5_000) {
 		state.last_spawned = state.elapsed_ms;
 		
 		let enemy_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 14);
@@ -200,6 +231,7 @@ fn enemy_spawner(state: &mut MainState, ctx: &mut Context) {
 			seed: state.rng.gen_range(-1.0, 1.0),
 			timer: 0,
 			bullet_cooldown: ENEMY_BULLET_COOLDOWN,
+			angle: 0.0,
 		};
 		state.entities.push(enemy);
 	}
@@ -208,37 +240,68 @@ fn enemy_spawner(state: &mut MainState, ctx: &mut Context) {
 // Generates enemies randomly over time
 fn collision_detection(state: &mut MainState) {
 	// Iterate through subject entities
-	for a in 0..state.entities.len() {
-		match state.entities[a].entity_type {
+	for entity_idx in 0..state.entities.len() {
+		match state.entities[entity_idx].entity_type {
 			EntityType::Player => {
-				for b in 0..state.entities.len() {
-					match state.entities[b].entity_type {
+				for threat_idx in 0..state.entities.len() {
+					match state.entities[threat_idx].entity_type {
 						EntityType::Enemy => {
-							// If bounding boxes collide
-							let e1_x = state.entities[a].x + state.entities[a].bounds.x;
-							let e1_w = state.entities[a].bounds.w;
-							let e1_y = state.entities[a].y + state.entities[a].bounds.y;
-							let e1_h = state.entities[a].bounds.h;
-							let e2_x = state.entities[b].x + state.entities[b].bounds.x;
-							let e2_w = state.entities[b].bounds.w;
-							let e2_y = state.entities[b].y + state.entities[b].bounds.y;
-							let e2_h = state.entities[b].bounds.h;
-							if e1_x < e2_x + e2_w &&
-								e1_x + e1_w > e2_x &&
-								e1_y < e2_y + e2_h &&
-								e1_h + e1_y > e2_y {
-								let e = &mut state.entities[a];
-								e.lifetime = Lifetime::Milliseconds(1);
+							if colliding(state, entity_idx, threat_idx) {
+								state.entities[entity_idx].lifetime = Lifetime::Milliseconds(0);
+							}
+						},
+						EntityType::EnemyBullet => {
+							if colliding(state, entity_idx, threat_idx) {
+								state.entities[entity_idx].lifetime = Lifetime::Milliseconds(0);
+								state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
 							}
 						},
 						_ => (),
 					}
 				}
 			},
-			EntityType::PlayerBullet => (),
+			EntityType::PlayerBullet => {
+			},
 			EntityType::EnemyBullet => (),
+			// If we are an enemy (entity_idx)
+			EntityType::Enemy => {
+				for threat_idx in 0..state.entities.len() {
+					match state.entities[threat_idx].entity_type {
+						// See if we hit the threat
+						EntityType::PlayerBullet => {
+							if colliding(state, entity_idx, threat_idx) {
+								state.entities[entity_idx].lifetime = Lifetime::Milliseconds(0);
+								state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
+							}
+						},
+						_ => (),
+					}
+				}
+			},
 			_ => (),
 		}
+	}
+}
+
+// Check if a has hit b, and kill a if it does;
+fn colliding(state: &mut MainState, a: usize, b: usize) -> bool{
+	// If bounding boxes collide
+	let e1_x = state.entities[a].x + state.entities[a].bounds.x;
+	let e1_w = state.entities[a].bounds.w;
+	let e1_y = state.entities[a].y + state.entities[a].bounds.y;
+	let e1_h = state.entities[a].bounds.h;
+	let e2_x = state.entities[b].x + state.entities[b].bounds.x;
+	let e2_w = state.entities[b].bounds.w;
+	let e2_y = state.entities[b].y + state.entities[b].bounds.y;
+	let e2_h = state.entities[b].bounds.h;
+	if e1_x < e2_x + e2_w &&
+		e1_x + e1_w > e2_x &&
+		e1_y < e2_y + e2_h &&
+		e1_h + e1_y > e2_y {
+			true
+	}
+	else {
+		false
 	}
 }
 		
@@ -258,48 +321,75 @@ impl event::EventHandler for MainState {
 
         self.score_text = graphics::Text::new(_ctx, &format!("Score: {}", &self.score.to_string()), &self.score_font).unwrap();
 	
-		for e in &mut self.entities {
-			e.timer += self.delta_ms;
-			e.lifetime = match e.lifetime {
-				Lifetime::Forever => Lifetime::Forever,
-				Lifetime::Milliseconds(remaining) => Lifetime::Milliseconds(remaining - self.delta_ms as i64),
-			};
-			e.bullet_cooldown -= self.delta_ms as i64;
-			if e.bullet_cooldown < 0 {
-				e.bullet_cooldown = 0;
-			}
+		for i in 0..self.entities.len() {
+			{
+				let e = &mut self.entities[i];
+				e.timer += self.delta_ms;
+				e.lifetime = match e.lifetime {
+					Lifetime::Forever => Lifetime::Forever,
+					Lifetime::Milliseconds(remaining) => Lifetime::Milliseconds(remaining - self.delta_ms as i64),
+				};
+				e.bullet_cooldown -= self.delta_ms as i64;
+				if e.bullet_cooldown < 0 {
+					e.bullet_cooldown = 0;
+				}
 			
-			match e.movement {
-				Movement::None => (),
-				Movement::Linear(x,y) => e.translate(x / 1000_f32, y / 1000_f32),
-				Movement::Generated(func) => {
-					let (x, y) = func(e.timer, &mut self.rng, e.seed);
-					e.translate(x, y);
-				},
+				match e.movement {
+					Movement::None => (),
+					Movement::Linear(x,y) => e.translate(x / 1000_f32, y / 1000_f32),
+					Movement::Generated(func) => {
+						let (x, y) = func(e.timer, &mut self.rng, e.seed);
+						e.translate(x, y);
+					},
+				}
 			}
-			match e.entity_type {
+			match self.entities[i].entity_type {
 				entity::EntityType::Player => {
-					
+					let e = &mut self.entities[i];
 					let vel= e.vel * ((self.delta_ms as f32) / 1000_f32);
 	
-					if self.input.left {
-						e.translate(-vel, 0.0);
+					match (self.input.up, self.input.right, self.input.down, self.input.left) {
+						( true, false, false, false) => e.translate(0.0, -vel),
+						( true,  true, false, false) => e.translate(vel*0.707, -vel*0.707),
+						(false,  true, false, false) => e.translate(vel, 0.0),
+						(false,  true,  true, false) => e.translate(vel*0.707, vel*0.707),
+						(false, false,  true, false) => e.translate(0.0, vel),
+						(false, false,  true,  true) => e.translate(-vel*0.707, vel*0.707),
+						(false, false, false,  true) => e.translate(-vel, 0.0),
+						( true, false, false,  true) => e.translate(-vel*0.707, -vel*0.707),
+						_ => (),
 					}
-					if self.input.right {
-						e.translate(vel, 0.0);
+
+					// Limit player position to map.
+					let window_width = _ctx.conf.window_mode.width as f32;
+					let window_height = _ctx.conf.window_mode.height as f32;
+					if e.x + e.bounds.x < 0.0 {
+						e.x = 0.0 - e.bounds.x;
 					}
-					if self.input.up {
-						e.translate(0.0, -vel);
+					if e.x + e.bounds.x + e.bounds.w > window_width {
+						e.x = window_width - (e.bounds.x + e.bounds.w);
 					}
-					if self.input.down {
-						e.translate(0.0, vel);
+					if e.y + e.bounds.y < 0.0 {
+						e.y = 0.0 - e.bounds.y;
 					}
+					if e.y + e.bounds.y + e.bounds.h > window_height {
+						e.y = window_height - (e.bounds.y + e.bounds.h);
+					}
+					
 				},
 				entity::EntityType::Enemy => {
-					//enemy_bullet_spawner()
+					if self.entities[i].bullet_cooldown == 0 {
+						self.entities[i].bullet_cooldown = ENEMY_BULLET_COOLDOWN;
+						let x = self.entities[i].x;
+						let y = self.entities[i].y;
+						enemy_bullet_spawner(self, x, y);
+					}
 				},
 				entity::EntityType::Boss => (),
-				entity::EntityType::PlayerBullet => (),
+				entity::EntityType::PlayerBullet => {
+					let player_bullet = &mut self.entities[i];
+					player_bullet.angle = 10.0;
+				},
 				entity::EntityType::EnemyBullet => (),
 			}
 		}
@@ -339,8 +429,17 @@ impl event::EventHandler for MainState {
 			let texture = &self.textures[&e.entity_type];
 			let text_size_div_2 =  graphics::Point2::new(e.text.width() as f32 / 2.0, e.text.height() as f32 / 2.0);
 
-			// Draw the entity sprite
-			graphics::draw(ctx, texture, pos, 0.0)?;
+			// Draw the entity sprite axis-aligned
+			graphics::draw(ctx, texture, pos, e.angle)?;
+			
+			// Draw the entity sprite rotated if needed
+			/*if e.angle != 0.0 {
+				graphics::draw(ctx, texture, pos, e.angle)?;
+			}
+			else {
+				let new_angle = e.angle - std::f64::consts::PI * (45.0/180);
+				x_offset = new_angle ( texture.width() *  ) as f32;
+			}*/
 			
 			// If this is an enemy, include a name tag.
 			if(e.entity_type == entity::EntityType::Enemy){

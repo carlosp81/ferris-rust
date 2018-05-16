@@ -46,6 +46,7 @@ pub struct Entity {
 	pub seed: f64,
 	pub timer: u64,
 	pub bullet_cooldown: i64,
+	pub angle: f32,
 }
 
 impl Entity {
