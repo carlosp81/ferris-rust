@@ -12,6 +12,7 @@ pub enum EntityType {
 	PlayerBullet,
 	Enemy,
 	Player,
+	Powerup,
 }
 
 #[derive(Debug)]

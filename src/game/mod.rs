@@ -9,13 +9,20 @@ use ggez::{audio, graphics};
 use std;
 
 mod entity;
+mod powerupspawner;
 
+use self::powerupspawner::PowerupSpawner;
 use self::entity::{Lifetime, EntityType, Movement};
 use self::rand::Rng;
 
+const DEFAULT_FONT: &str = "/font/FiraSans-Regular.ttf";
+const DEFAULT_FONT_SIZE: u8 = 30;
 const PLAYER_BULLET_COOLDOWN: i64 = 250;
 const ENEMY_BULLET_COOLDOWN: i64 = 2_000;
 const DRAW_BOUNDING_BOXES: bool = true;
+//const WINDOW_WIDTH: f32 = 1024.0;
+//const WINDOW_HEIGHT: f32 = 1024.0;
+
 
 const ENEMY_NAMES: [&str;4] = [
 	"NULL POINTER",
@@ -36,6 +43,7 @@ struct Input {
 
 // First we make a structure to contain the game's state
 pub struct MainState {
+	powerups: PowerupSpawner,
     score_text: graphics::Text,
     frames: usize,
     entities: Vec<entity::Entity>,
@@ -61,6 +69,7 @@ impl MainState {
 		let score_text = graphics::Text::new(ctx, "Score: ", &score_font)?;
 
         let mut s = MainState {
+			powerups: PowerupSpawner::new(10_000),
             score_text,
             frames: 0,
             entities: Vec::new(),
@@ -86,11 +95,9 @@ impl MainState {
 		// Set up textures
 		s.textures.insert(entity::EntityType::Player, graphics::Image::new(ctx, "/texture/crab.png").unwrap() );
 		s.textures.insert(entity::EntityType::Enemy, graphics::Image::new(ctx, "/texture/enemy.png").unwrap() );
-		s.textures.insert(entity::EntityType::PlayerBullet, graphics::Image::new(ctx, 
-		"/texture/player_bullet.png").unwrap() );
-		s.textures.insert(entity::EntityType::EnemyBullet, graphics::Image::new(ctx, 
-		"/texture/enemy_bullet.png").unwrap() );
-
+		s.textures.insert(entity::EntityType::PlayerBullet, graphics::Image::new(ctx, "/texture/player_bullet.png").unwrap() );
+		s.textures.insert(entity::EntityType::EnemyBullet, graphics::Image::new(ctx, "/texture/enemy_bullet.png").unwrap() );
+		s.textures.insert(entity::EntityType::Powerup, graphics::Image::new(ctx, "/texture/powerup.png").unwrap() );
 		
 		// Set up sound effects
 		s.sfx.insert("player_shot", audio::Source::new(ctx, "/sounds/player_shot.wav")?);
@@ -120,6 +127,24 @@ impl MainState {
 		
 		s.entities.push(player);
 		s.bgm.play()?;
+		
+
+        //let resolutions = ggez::graphics::get_fullscreen_modes(ctx, 0)?;
+		
+        //let (width, height) = resolutions[3];
+
+		//ggez::graphics::set_resolution(ctx, width, height)?;
+		//graphics::set_resolution(ctx, WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32);
+		//ctx.conf.window_setup.resizable = true;
+		//ctx.conf.window_mode.width = WINDOW_WIDTH as u32;
+		//ctx.conf.window_mode.height = WINDOW_HEIGHT as u32;
+		//graphics::set_screen_coordinates(ctx, graphics::Rect {
+			//x: 0.0,
+			//y: 0.0,
+			//w: WINDOW_WIDTH / 2.0,
+			//h: WINDOW_HEIGHT,
+
+		//});
         Ok(s)
     }
 }
@@ -144,7 +169,7 @@ fn player_bullet_spawner(state: &mut MainState, x: f32, y: f32) {
 		x: x as f32 + (state.textures[&entity::EntityType::Player].width() as f32 / 2.0) - (state.textures[&entity::EntityType::PlayerBullet].width() as f32 / 2.0),
 		y: y - (state.textures[&entity::EntityType::PlayerBullet].height() as f32 / 2.0),
 		hp: 1,
-		vel: 5000.0,
+		vel: 10.0,
 		bounds: graphics::Rect {
 			x: 0.0,
 			y: 0.0,
@@ -177,7 +202,7 @@ fn enemy_bullet_spawner(state: &mut MainState, x: f32, y: f32) {
 			w: 25.0,
 			h: 25.0,
 		},
-		movement: Movement::Linear(0.0, 3_000.0),
+		movement: Movement::Linear(0.0, 7_000.0),
 		lifetime: Lifetime::Milliseconds(8_000),
 		seed: 0.0,
 		timer: 0,
@@ -218,7 +243,7 @@ fn enemy_spawner(state: &mut MainState, ctx: &mut Context) {
 						(
 							1.0 +
 							(
-								(t as f64) / 900.0 + s * 10.0).sin()
+								(t as f64) / 300.0 + s * 100.0).sin()
 						) as f32
 					)
 				}
@@ -253,6 +278,17 @@ fn collision_detection(state: &mut MainState) {
 						EntityType::EnemyBullet => {
 							if colliding(state, entity_idx, threat_idx) {
 								state.entities[entity_idx].lifetime = Lifetime::Milliseconds(0);
+								state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
+							}
+						},
+						EntityType::Powerup => {
+							if colliding(state, entity_idx, threat_idx) {
+								// Right now, the only powerup we have will destroy all enemies on the screen.
+								for enemy_idx in 0..state.entities.len() {
+									if state.entities[enemy_idx].entity_type == EntityType::Enemy {
+										state.entities[enemy_idx].lifetime = Lifetime::Milliseconds(0);
+									}
+								}
 								state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
 							}
 						},
@@ -316,7 +352,15 @@ impl event::EventHandler for MainState {
 		update_time(self);
 		enemy_spawner(self, _ctx);
 		collision_detection(self);
-					
+		
+		match self.powerups.update(self.delta_ms, _ctx) {
+			Some(mut e) => {
+				e.x = self.rng.gen_range(0.0, _ctx.conf.window_mode.width as f32 - self.textures[&entity::EntityType::Powerup].width() as f32);
+				e.y = self.rng.gen_range(0.0, _ctx.conf.window_mode.height as f32 - self.textures[&entity::EntityType::Powerup].height() as f32);
+				self.entities.push(e)},
+			None => (),
+		}
+
         //self.score_tex.f //graphics::Text::new(_ctx, &format!("Score: {}", self.score), _ctx.default_font)?;
 
         self.score_text = graphics::Text::new(_ctx, &format!("Score: {}", &self.score.to_string()), &self.score_font).unwrap();
@@ -391,6 +435,7 @@ impl event::EventHandler for MainState {
 					player_bullet.angle = 10.0;
 				},
 				entity::EntityType::EnemyBullet => (),
+				entity::EntityType::Powerup => (),
 			}
 		}
 
