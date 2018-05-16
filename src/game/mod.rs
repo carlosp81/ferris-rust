@@ -22,6 +22,11 @@ const ENEMY_BULLET_COOLDOWN: i64 = 2_000;
 const DRAW_BOUNDING_BOXES: bool = true;
 //const WINDOW_WIDTH: f32 = 1024.0;
 //const WINDOW_HEIGHT: f32 = 1024.0;
+=======
+const DRAW_BOUNDING_BOXES: bool = false;
+const ENEMY_SPAWN_MIN_TIME: u64 = 500; //500 is good
+const ENEMY_SPAWN_MAX_TIME: u64 = 5000; //5000 is good
+>>>>>>> d33f0e84a6efae79c200cfc580bbc17db090f04a
 
 
 const ENEMY_NAMES: [&str;4] = [
@@ -216,6 +221,7 @@ fn enemy_bullet_spawner(state: &mut MainState, x: f32, y: f32) {
 // Generates enemies randomly over time
 fn enemy_spawner(state: &mut MainState, ctx: &mut Context) {
 	// Spawn randomly between a time range on a chance.
+	if state.elapsed_ms - state.last_spawned > state.rng.gen_range(ENEMY_SPAWN_MIN_TIME, ENEMY_SPAWN_MAX_TIME) {
 	if state.elapsed_ms - state.last_spawned > state.rng.gen_range(500, 5_000) {
 		state.last_spawned = state.elapsed_ms;
 		
@@ -432,6 +438,7 @@ impl event::EventHandler for MainState {
 				entity::EntityType::Boss => (),
 				entity::EntityType::PlayerBullet => {
 					let player_bullet = &mut self.entities[i];
+					player_bullet.angle += self.delta_ms as f32 / 100.0;
 					player_bullet.angle = 10.0;
 				},
 				entity::EntityType::EnemyBullet => (),
@@ -468,6 +475,30 @@ impl event::EventHandler for MainState {
 		graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, 0.0 + (self.elapsed_ms/40%1920) as f32), 0.0)?;
 		graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, -1920.0 + (self.elapsed_ms/40 % 1920) as f32), 0.0)?;
 
+		let player_x = self.entities[0].x;
+		let player_y = self.entities[0].y;
+		println!("Player x = {}, Player y = {}", player_x / 10.0, player_y / 50.0 - 5.0);
+		
+		// Draw all entities
+		for e in &mut self.entities {
+			let pos = graphics::Point2::new(e.x, e.y);
+			let texture = &self.textures[&e.entity_type];
+			let text_size_div_2 =  graphics::Point2::new(e.text.width() as f32 / 2.0, e.text.height() as f32 / 2.0);
+
+			// Draw the entity sprite axis-aligned
+			//graphics::draw(ctx, texture, pos, 0.0)?;
+			
+			// Draw the entity sprite rotated if needed
+			if e.angle == 0.0 {
+				graphics::draw(ctx, texture, pos, e.angle)?;
+			}  
+			else {
+				let half_width = texture.width() as f64 / 2.0;
+				let angle = e.angle as f64 + (5.0 * std::f64::consts::PI / 4.0);
+				let x = (half_width + half_width * (2.0_f64).sqrt() * angle.cos()) as f32;
+				let y = (half_width + half_width * (2.0_f64).sqrt() * angle.sin()) as f32;
+				graphics::draw(ctx, texture, graphics::Point2::new(e.x + x, e.y+ y), e.angle);
+			}
 		// Draw all entities
 		for e in &mut self.entities {
 			let pos = graphics::Point2::new(e.x, e.y);
