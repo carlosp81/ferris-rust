@@ -22,11 +22,10 @@ const ENEMY_BULLET_COOLDOWN: i64 = 2_000;
 const DRAW_BOUNDING_BOXES: bool = true;
 //const WINDOW_WIDTH: f32 = 1024.0;
 //const WINDOW_HEIGHT: f32 = 1024.0;
-=======
-const DRAW_BOUNDING_BOXES: bool = false;
+
 const ENEMY_SPAWN_MIN_TIME: u64 = 500; //500 is good
 const ENEMY_SPAWN_MAX_TIME: u64 = 5000; //5000 is good
->>>>>>> d33f0e84a6efae79c200cfc580bbc17db090f04a
+
 
 
 const ENEMY_NAMES: [&str;4] = [
@@ -222,7 +221,6 @@ fn enemy_bullet_spawner(state: &mut MainState, x: f32, y: f32) {
 fn enemy_spawner(state: &mut MainState, ctx: &mut Context) {
 	// Spawn randomly between a time range on a chance.
 	if state.elapsed_ms - state.last_spawned > state.rng.gen_range(ENEMY_SPAWN_MIN_TIME, ENEMY_SPAWN_MAX_TIME) {
-	if state.elapsed_ms - state.last_spawned > state.rng.gen_range(500, 5_000) {
 		state.last_spawned = state.elapsed_ms;
 		
 		let enemy_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 14);
@@ -439,7 +437,6 @@ impl event::EventHandler for MainState {
 				entity::EntityType::PlayerBullet => {
 					let player_bullet = &mut self.entities[i];
 					player_bullet.angle += self.delta_ms as f32 / 100.0;
-					player_bullet.angle = 10.0;
 				},
 				entity::EntityType::EnemyBullet => (),
 				entity::EntityType::Powerup => (),
@@ -477,7 +474,7 @@ impl event::EventHandler for MainState {
 
 		let player_x = self.entities[0].x;
 		let player_y = self.entities[0].y;
-		println!("Player x = {}, Player y = {}", player_x / 10.0, player_y / 50.0 - 5.0);
+		//println!("Player x = {}, Player y = {}", player_x / 10.0, player_y / 50.0 - 5.0);
 		
 		// Draw all entities
 		for e in &mut self.entities {
@@ -499,6 +496,7 @@ impl event::EventHandler for MainState {
 				let y = (half_width + half_width * (2.0_f64).sqrt() * angle.sin()) as f32;
 				graphics::draw(ctx, texture, graphics::Point2::new(e.x + x, e.y+ y), e.angle);
 			}
+		}
 		// Draw all entities
 		for e in &mut self.entities {
 			let pos = graphics::Point2::new(e.x, e.y);
