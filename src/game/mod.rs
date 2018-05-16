@@ -45,6 +45,35 @@ struct Input {
 	shoot: bool,
 }
 
+pub struct MenuState {
+	
+}
+
+impl MenuState {
+    pub fn new(ctx: &mut Context) -> GameResult<MenuState> {
+		
+        let mut s = MenuState {
+		};
+        Ok(s)
+	}
+}
+
+impl event::EventHandler for MenuState {
+    fn update(&mut self, _ctx: &mut Context) -> GameResult<()> {
+		Ok(())
+	}
+	
+	fn draw(&mut self, _ctx: &mut Context) -> GameResult<()> {
+		Ok(())
+	}
+
+    fn key_down_event(&mut self, _ctx: &mut Context, keycode: Keycode, keymod: Mod, repeat: bool) {
+	}
+	
+    fn key_up_event(&mut self, _ctx: &mut Context, keycode: Keycode, keymod: Mod, repeat: bool) {
+	}
+}
+
 // First we make a structure to contain the game's state
 pub struct MainState {
 	powerups: PowerupSpawner,
