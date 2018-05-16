@@ -525,29 +525,10 @@ impl event::EventHandler for MainState {
 				let y = (half_width + half_width * (2.0_f64).sqrt() * angle.sin()) as f32;
 				graphics::draw(ctx, texture, graphics::Point2::new(e.x + x, e.y+ y), e.angle);
 			}
-		}
-		// Draw all entities
-		for e in &mut self.entities {
-			let pos = graphics::Point2::new(e.x, e.y);
-			let texture = &self.textures[&e.entity_type];
-			let text_size_div_2 =  graphics::Point2::new(e.text.width() as f32 / 2.0, e.text.height() as f32 / 2.0);
-
-			// Draw the entity sprite axis-aligned
-			graphics::draw(ctx, texture, pos, e.angle)?;
-			
-			// Draw the entity sprite rotated if needed
-			/*if e.angle != 0.0 {
-				graphics::draw(ctx, texture, pos, e.angle)?;
-			}
-			else {
-				let new_angle = e.angle - std::f64::consts::PI * (45.0/180);
-				x_offset = new_angle ( texture.width() *  ) as f32;
-			}*/
+		
 			
 			// If this is an enemy, include a name tag.
-			if(e.entity_type == entity::EntityType::Enemy){
-
-
+			if(e.entity_type == entity::EntityType::Enemy) {
 				let offset = 30.0;
 				let text_pos = graphics::Point2::new(
 					e.x + texture.width() as f32 + offset, 
