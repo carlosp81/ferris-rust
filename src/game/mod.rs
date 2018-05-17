@@ -25,7 +25,7 @@ const DRAW_BOUNDING_BOXES: bool = true;
 
 const ENEMY_SPAWN_MIN_TIME: u64 = 500; //500 is good
 const ENEMY_SPAWN_MAX_TIME: u64 = 5000; //5000 is good
-const POWERUP_DELAY: i64 = 30_000; 
+const POWERUP_DELAY: i64 = 5_000; 
 
 
 
@@ -390,7 +390,6 @@ impl event::EventHandler for MainState {
 		match self.powerups.update(self.delta_ms, _ctx) {
 			Some(mut e) => {
 				e.x = self.rng.gen_range(0.0, _ctx.conf.window_mode.width as f32 - self.textures[&entity::EntityType::Powerup].width() as f32);
-				e.y = self.rng.gen_range(0.0, _ctx.conf.window_mode.height as f32 - self.textures[&entity::EntityType::Powerup].height() as f32);
 				self.entities.push(e)},
 			None => (),
 		}
