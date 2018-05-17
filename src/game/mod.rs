@@ -272,15 +272,11 @@ fn enemy_spawner(state: &mut MainState, ctx: &mut Context) {
 			},
 			movement: Movement::Generated(
 				|t,r,s|{
-					(
-						( ((t as f64) / 10.0) + r.gen_range(-100.0, 100.0)).sin() as f32 * r.gen_range(-5.0, 5.0),
-						(
-							1.0 +
-							(
-								(t as f64) / 100.0 + s * 100.0).sin()
-						) as f32
-					)
-				}
+ 					(
+						( ( (t as f64) / 1000.0 + s * 1000.0 ).sin() + r.gen_range(-3.0, 3.0) ) as f32,
+ 						(1.0 + ( (t as f64) / 900.0 + s * 100.0).sin() ) as f32
+ 					)
+ 				}
 			),
 			/*movement: Movement::Linear(
 				state.rng.gen_range(-600.0, 600.0),
