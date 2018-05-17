@@ -25,6 +25,7 @@ const DRAW_BOUNDING_BOXES: bool = true;
 
 const ENEMY_SPAWN_MIN_TIME: u64 = 500; //500 is good
 const ENEMY_SPAWN_MAX_TIME: u64 = 5000; //5000 is good
+const POWERUP_DELAY: i64 = 30_000; 
 
 
 
@@ -102,7 +103,7 @@ impl MainState {
 		let score_text = graphics::Text::new(ctx, "Score: ", &score_font)?;
 
         let mut s = MainState {
-			powerups: PowerupSpawner::new(10_000),
+			powerups: PowerupSpawner::new(POWERUP_DELAY),
             score_text,
             frames: 0,
             entities: Vec::new(),
@@ -260,7 +261,7 @@ fn enemy_spawner(state: &mut MainState, ctx: &mut Context) {
 			text: graphics::Text::new(ctx, name, &enemy_font.unwrap()).unwrap(),
 			entity_type: entity::EntityType::Enemy,
 			x: state.rng.gen_range(0.0, 720.0),
-			y: -100.0,
+			y: -50.0,
 			hp: 1,
 			vel: 100.0,
 			bounds: graphics::Rect {
@@ -272,11 +273,11 @@ fn enemy_spawner(state: &mut MainState, ctx: &mut Context) {
 			movement: Movement::Generated(
 				|t,r,s|{
 					(
-						( (t as f64) / 1000.0 + r.gen_range(-(std::f64::consts::PI), std::f64::consts::PI) ).sin() as f32,
+						( ((t as f64) / 10.0) + r.gen_range(-100.0, 100.0)).sin() as f32 * r.gen_range(-5.0, 5.0),
 						(
 							1.0 +
 							(
-								(t as f64) / 300.0 + s * 100.0).sin()
+								(t as f64) / 100.0 + s * 100.0).sin()
 						) as f32
 					)
 				}
@@ -288,7 +289,7 @@ fn enemy_spawner(state: &mut MainState, ctx: &mut Context) {
 			lifetime: Lifetime::Milliseconds(100_000),
 			seed: state.rng.gen_range(-1.0, 1.0),
 			timer: 0,
-			bullet_cooldown: ENEMY_BULLET_COOLDOWN,
+			bullet_cooldown: 0,
 			angle: 0.0,
 		};
 		state.entities.push(enemy);
