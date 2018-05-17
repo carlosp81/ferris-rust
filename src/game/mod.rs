@@ -143,7 +143,7 @@ impl MainState {
             entity_type: entity::EntityType::Player,
 		    x: (ctx.conf.window_mode.width as f32 / 2.0) - (s.textures[&entity::EntityType::Player].width() as f32 / 2.0),
             y: ctx.conf.window_mode.height as f32 - s.textures[&entity::EntityType::Player].height() as f32,
-            hp: 100,
+            hp: 5,
 			dam: 0,
             vel: 375.0,
 			bounds: graphics::Rect {
@@ -298,13 +298,20 @@ fn collision_detection(state: &mut MainState) {
 					match state.entities[threat_idx].entity_type {
 						EntityType::Enemy => {
 							if colliding(state, entity_idx, threat_idx) {
-								state.entities[entity_idx].lifetime = Lifetime::Milliseconds(0);
+								state.entities[entity_idx].hp -= state.entities[threat_idx].dam;
+								state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
+								if state.entities[entity_idx].hp <= 0 {
+									state.entities[entity_idx].lifetime = Lifetime::Milliseconds(0);
+								}
 							}
 						},
 						EntityType::EnemyBullet => {
 							if colliding(state, entity_idx, threat_idx) {
-								state.entities[entity_idx].lifetime = Lifetime::Milliseconds(0);
+								state.entities[entity_idx].hp -= state.entities[threat_idx].dam;
 								state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
+								if state.entities[entity_idx].hp <= 0 {
+									state.entities[entity_idx].lifetime = Lifetime::Milliseconds(0);
+								}
 							}
 						},
 						EntityType::Powerup => {
@@ -337,8 +344,11 @@ fn collision_detection(state: &mut MainState) {
 						// See if we hit the threat
 						EntityType::PlayerBullet => {
 							if colliding(state, entity_idx, threat_idx) {
-								state.entities[entity_idx].lifetime = Lifetime::Milliseconds(0);
+								state.entities[entity_idx].hp -= state.entities[threat_idx].dam;
 								state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
+								if state.entities[entity_idx].hp <= 0 {
+									state.entities[entity_idx].lifetime = Lifetime::Milliseconds(0);
+								}
 								// Gain score points
 								state.score += 10;
 							}
@@ -477,6 +487,10 @@ impl event::EventHandler for MainState {
 					if e.y + e.bounds.y + e.bounds.h > window_height {
 						e.y = window_height - (e.bounds.y + e.bounds.h);
 					}
+
+					// Hacky way of showing health
+					self.score_text = graphics::Text::new(_ctx, &format!("Score: {} || Health: {}", 
+						&self.score.to_string(), e.hp), &self.score_font).unwrap();
 					
 				},
 
