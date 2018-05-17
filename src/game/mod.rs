@@ -23,6 +23,8 @@ const DEFAULT_FONT_SIZE: u8 = 30;
 const PLAYER_BULLET_COOLDOWN: i64 = 250;
 const ENEMY_BULLET_COOLDOWN: i64 = 2_000;
 const DRAW_BOUNDING_BOXES: bool = true;
+const DISABLE_SFX: bool = true;
+
 //const WINDOW_WIDTH: f32 = 1024.0;
 //const WINDOW_HEIGHT: f32 = 1024.0;
 
@@ -161,7 +163,9 @@ impl MainState {
         };
 		
 		s.entities.push(player);
-		s.bgm.play()?;
+		if !DISABLE_SFX {
+			s.bgm.play()?;
+		}
 		
 
         //let resolutions = ggez::graphics::get_fullscreen_modes(ctx, 0)?;
@@ -209,7 +213,10 @@ fn player_bullet_spawner(state: &mut MainState, x: f32, y: f32) {
 		angle: 0.0,
 	};
 	state.entities.push(bullet);
-	state.sfx["player_shot"].play();
+	if !DISABLE_SFX {
+		state.sfx["player_shot"].play();
+	}
+	
 }
 
 // Spawns bullets for the enemy
@@ -237,7 +244,6 @@ fn enemy_bullet_spawner(state: &mut MainState, x: f32, y: f32) {
 		angle: 0.0,
 	};
 	state.entities.push(bullet);
-	//state.sfx["player_shot"].play();
 }
 
 // Generates enemies randomly over time
@@ -563,6 +569,21 @@ impl event::EventHandler for MainState {
 			// Draw the entity sprite axis-aligned
 			//graphics::draw(ctx, texture, pos, 0.0)?;
 			
+			// Special drawing conditions start
+			match e.entity_type {
+				entity::EntityType::Enemy => {
+					if e.hp == 1 {
+						graphics::set_color(ctx, graphics::Color::new(1.0, 0.3, 0.3, 1.0))?;
+					}
+				},
+				entity::EntityType::Player => {
+					if e.hp == 1 {
+						graphics::set_color(ctx, graphics::Color::new(1.0, 0.2, 0.2, 1.0))?;
+					}
+				},
+				_ => {}
+			}
+			
 			// Draw the entity sprite rotated if needed
 			if e.angle == 0.0 {
 				graphics::draw(ctx, texture, pos, e.angle)?;
@@ -575,6 +596,8 @@ impl event::EventHandler for MainState {
 				graphics::draw(ctx, texture, graphics::Point2::new(e.x + x, e.y+ y), e.angle);
 			}
 		
+			// End drawing conditions: Reset drawing conditions
+			graphics::set_color(ctx, graphics::Color::new(1.0, 1.0, 1.0, 1.0))?;
 			
 			// If this is an enemy, include a name tag.
 			if(e.entity_type == entity::EntityType::Enemy) {

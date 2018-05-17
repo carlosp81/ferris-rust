@@ -49,7 +49,7 @@ impl PowerupSpawner {
                     w: 32.0,
                     h: 32.0,
                 },
-		        movement: Movement::Linear(0.0, 700.0),
+		        movement: Movement::Linear(0.0, 65000.0),
                 lifetime: Lifetime::Forever,
                 seed: 0.0,
                 timer: 0,
