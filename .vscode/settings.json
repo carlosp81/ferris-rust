@@ -1,0 +1,4 @@
+{
+    "rust.build_on_save": true,
+    "rust.checkWith": "clippy"
+}

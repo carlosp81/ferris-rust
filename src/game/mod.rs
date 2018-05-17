@@ -23,11 +23,11 @@ const DEFAULT_FONT_SIZE: u8 = 30;
 const PLAYER_BULLET_COOLDOWN: i64 = 250;
 const ENEMY_BULLET_COOLDOWN: i64 = 2_000;
 const DRAW_BOUNDING_BOXES: bool = true;
-const DISABLE_SFX: bool = true;
+const DISABLE_SFX: bool = false;
 
 // Adjust this to start further ahead or behind in the spawn schedule
 const SCHEDULE_OFFSET: u64 = 0;
-const USE_BETA_SCHEDULER: bool = true;
+const USE_BETA_SCHEDULER: bool = false;
 const SHOW_INPUT_DEBUG: bool = false;
 
 //const WINDOW_WIDTH: f32 = 1024.0;
@@ -366,7 +366,7 @@ fn enemy_spawner(state: &mut MainState, ctx: &mut Context) {
 			entity_type: entity::EntityType::Enemy,
 			x: state.rng.gen_range(0.0, 720.0),
 			y: -50.0,
-			hp: 2,
+			hp: 3,
 			dam: 1,
 			vel: 100.0,
 			bounds: graphics::Rect {
@@ -411,18 +411,18 @@ fn collision_detection(state: &mut MainState) {
 							if colliding(state, entity_idx, threat_idx) {
 								state.entities[entity_idx].hp -= state.entities[threat_idx].dam;
 								state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
-								if state.entities[entity_idx].hp <= 0 {
-									state.entities[entity_idx].lifetime = Lifetime::Milliseconds(0);
-								}
+								//if state.entities[entity_idx].hp <= 0 {
+									//state.entities[entity_idx].lifetime = Lifetime::Milliseconds(0);
+								//}
 							}
 						},
 						EntityType::EnemyBullet => {
 							if colliding(state, entity_idx, threat_idx) {
 								state.entities[entity_idx].hp -= state.entities[threat_idx].dam;
 								state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
-								if state.entities[entity_idx].hp <= 0 {
-									state.entities[entity_idx].lifetime = Lifetime::Milliseconds(0);
-								}
+								//if state.entities[entity_idx].hp <= 0 {
+									//state.entities[entity_idx].lifetime = Lifetime::Milliseconds(0);
+								//}
 							}
 						},
 						EntityType::Powerup => {
@@ -648,8 +648,8 @@ impl event::EventHandler for MainState {
 		
 		// Kill off dead entities
 		self.entities.retain(|e| match e.lifetime {
-			Lifetime::Forever => true,
-			Lifetime::Milliseconds(r) => r > 0,
+			Lifetime::Forever => true && e.hp > 0,
+			Lifetime::Milliseconds(r) => r > 0 && e.hp > 0,
 		});
 		
         Ok(())
@@ -679,13 +679,17 @@ impl event::EventHandler for MainState {
 			// Draw the entity sprite axis-aligned
 			//graphics::draw(ctx, texture, pos, 0.0)?;
 			
+			// Normal drawing conditions
+			
+
 			// Special drawing conditions start
 			match e.entity_type {
 				entity::EntityType::Enemy => {
 					match e.hp {
-						1 => graphics::set_color(ctx, graphics::Color::new(1.0, 0.0, 0.0, 1.0))?,
-						2 => graphics::set_color(ctx, graphics::Color::new(1.0, 0.4, 0.4, 1.0))?,
-						_ => ()
+						1 => graphics::set_color(ctx, graphics::Color::new(1.0, 0.1, 0.0, 1.0))?,
+						2 => graphics::set_color(ctx, graphics::Color::new(0.9, 0.5, 0.0, 1.0))?,
+						3 => graphics::set_color(ctx, graphics::Color::new(0.0, 1.0, 0.0, 1.0))?,
+						_ => (),
 					}
 				},
 				entity::EntityType::Player => {
@@ -694,7 +698,7 @@ impl event::EventHandler for MainState {
 						2 => graphics::set_color(ctx, graphics::Color::new(0.6, 0.1, 0.1, 0.95))?,
 						3 => graphics::set_color(ctx, graphics::Color::new(1.0, 0.7, 0.7, 1.0))?,
 						4 => graphics::set_color(ctx, graphics::Color::new(1.0, 0.9, 0.9, 1.0))?,						
-						_ => ()
+						_ => graphics::set_color(ctx, graphics::Color::new(1.0, 1.0, 1.0, 1.0))?,
 					}
 				},
 				_ => {}
