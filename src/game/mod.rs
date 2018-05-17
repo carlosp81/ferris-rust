@@ -25,12 +25,17 @@ const ENEMY_BULLET_COOLDOWN: i64 = 2_000;
 const DRAW_BOUNDING_BOXES: bool = true;
 const DISABLE_SFX: bool = true;
 
+// Adjust this to start further ahead or behind in the spawn schedule
+const SCHEDULE_OFFSET: u64 = 0;
+const USE_BETA_SCHEDULER: bool = true;
+const SHOW_INPUT_DEBUG: bool = false;
+
 //const WINDOW_WIDTH: f32 = 1024.0;
 //const WINDOW_HEIGHT: f32 = 1024.0;
 
 const ENEMY_SPAWN_MIN_TIME: u64 = 500; //500 is good
 const ENEMY_SPAWN_MAX_TIME: u64 = 5000; //5000 is good
-const POWERUP_DELAY: i64 = 5_000; 
+const POWERUP_DELAY: i64 = 15_000; 
 
 const ENEMY_NAMES: [&str;4] = [
 	"NULL POINTER",
@@ -87,12 +92,14 @@ pub struct MainState {
     score: u32,
     score_font: graphics::Font,
     background: graphics::Image,
+	start_time: std::time::SystemTime,
 	elapsed_ms: u64,
 	delta_ms: u64,
 	textures: std::collections::HashMap::<entity::EntityType, graphics::Image>,
 	bgm: audio::Source,
 	rng: rand::ThreadRng,
 	last_spawned: u64,
+	schedule: Vec<(u64, entity::Entity)>,
 	sfx: std::collections::HashMap::<&'static str, audio::Source>,
 }
 
@@ -121,10 +128,12 @@ impl MainState {
             background: graphics::Image::new(ctx, "/texture/background_tiled.png").unwrap(),
 			elapsed_ms: 0,	//Elapsed time since state creation, in milliseconds
 			delta_ms: 0,	//Elapsed time since last frame, in milliseconds
+			start_time:  std::time::SystemTime::now(),
 			textures: std::collections::HashMap::new(),
 			bgm: audio::Source::new(ctx, "/sounds/Tejaswi-Hyperbola.ogg")?,
 			rng: rand::thread_rng(),
 			last_spawned: 0,
+			schedule: Vec::<(u64, entity::Entity)>::new(),
 			sfx: std::collections::HashMap::new(),
 		};
 		
@@ -167,7 +176,10 @@ impl MainState {
 			s.bgm.play()?;
 		}
 		
-
+		if USE_BETA_SCHEDULER {
+			schedule(& mut s, ctx);
+		}
+	
         //let resolutions = ggez::graphics::get_fullscreen_modes(ctx, 0)?;
 		
         //let (width, height) = resolutions[3];
@@ -244,6 +256,99 @@ fn enemy_bullet_spawner(state: &mut MainState, x: f32, y: f32) {
 		angle: 0.0,
 	};
 	state.entities.push(bullet);
+}
+
+// Generate enemies based on a schedule
+fn gen_basic_enemy(t_x: f32, t_y: f32, txt: graphics::Text, t_seed: f64) -> entity::Entity {
+
+	
+	entity::Entity {
+		text: txt,
+		entity_type: entity::EntityType::Enemy,
+		x: t_x,
+		y: t_y,
+		hp: 3,
+		dam: 1,
+		vel: 100.0,
+		bounds: graphics::Rect {
+			x: 18.0,
+			y: 5.0,
+			w: 44.0,
+			h: 60.0,
+		},
+		movement: Movement::Generated(
+			|t,r,s|{
+				(
+					( ( (t as f64) / 1000.0 + s * 1000.0 ).sin() + r.gen_range(-3.0, 3.0) ) as f32 * 60_f32,
+					(1.0 + ( (t as f64) / 900.0 + s * 100.0).sin() ) as f32 * 60_f32
+				)
+			}
+		),
+		/*movement: Movement::Linear(
+			state.rng.gen_range(-600.0, 600.0),
+			state.rng.gen_range(300.0, 1000.0),
+		),*/
+		lifetime: Lifetime::Milliseconds(100_000),
+		seed: t_seed,
+		timer: 0,
+		bullet_cooldown: 0,
+		angle: 0.0,
+	}
+}
+
+// Setup the schedule
+fn schedule(state: &mut MainState, ctx: &mut Context) {
+
+	// Release a boss later?
+
+	// Release a 10 enemies enemy on 12000 ms
+ 	for i in (1..10).rev() {
+		let enemy_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 14);
+		let name = ENEMY_NAMES[state.rng.gen::<usize>() % ENEMY_NAMES.len()].clone();
+		state.schedule.push((12000 + ((i as u64) * 100_u64), gen_basic_enemy(100_f32 + (i as f32) * 100_f32 , -50_f32, 
+			graphics::Text::new(ctx, name, &enemy_font.unwrap()).unwrap(), state.rng.gen_range(-1.0, 1.0))));
+	}
+
+	// Release like 5 enemies enemy on 5000 ms
+	for i in (1..5).rev() {
+		let enemy_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 14);
+		let name = ENEMY_NAMES[state.rng.gen::<usize>() % ENEMY_NAMES.len()].clone();
+		state.schedule.push((5000 + ((i as u64) * 100_u64), gen_basic_enemy(200_f32 + (i as f32) * 80_f32 , -50_f32, 
+			graphics::Text::new(ctx, name, &enemy_font.unwrap()).unwrap(), state.rng.gen_range(-1.0, 1.0))));
+	}
+
+
+	// Release an enemy on 1000
+	{
+		let enemy_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 14);
+		let name = ENEMY_NAMES[state.rng.gen::<usize>() % ENEMY_NAMES.len()].clone();
+		state.schedule.push((1000, gen_basic_enemy(300_f32, -50_f32, 
+			graphics::Text::new(ctx, name, &enemy_font.unwrap()).unwrap(), state.rng.gen_range(-1.0, 1.0))));
+	}
+
+	
+}
+
+fn scheduler(state: &mut MainState, ctx: &mut Context) {
+	let mut cont : bool = true;
+
+	while cont {
+		
+		cont = false;
+		if let Some(entry) = state.schedule.last() {
+			if entry.0 < state.elapsed_ms + SCHEDULE_OFFSET {
+				cont = true;
+			}
+		}
+
+		if cont {
+			let (indx, ent) = state.schedule.pop().unwrap();
+			println!("Releasing new enemy on schedule time: {:?}. It is time: {:?}", indx, state.elapsed_ms);
+			state.entities.push(ent);
+			cont = false;
+		}
+	}
+	
 }
 
 // Generates enemies randomly over time
@@ -395,7 +500,7 @@ fn colliding(state: &mut MainState, a: usize, b: usize) -> bool{
 // Update state's elapsed ms and delta ms
 fn update_time(state: &mut MainState) {
 	let now = std::time::SystemTime::now();
-	let difference = now.duration_since(std::time::UNIX_EPOCH).expect("Time went backwards");
+	let difference = now.duration_since(state.start_time).expect("Time went backwards");
 	let current_ms = difference.as_secs() * 1000 + difference.subsec_nanos() as u64 / 1_000_000;
 	state.delta_ms = match state.elapsed_ms {
 		0 => 0,
@@ -414,7 +519,12 @@ impl event::EventHandler for MainState {
     fn update(&mut self, _ctx: &mut Context) -> GameResult<()> {
         
 		update_time(self);
-		enemy_spawner(self, _ctx);
+
+		if USE_BETA_SCHEDULER {
+			scheduler(self, _ctx);
+		} else {
+			enemy_spawner(self, _ctx);
+		}
 		collision_detection(self);
 		
 		match self.powerups.update(self.delta_ms, _ctx) {
@@ -572,13 +682,19 @@ impl event::EventHandler for MainState {
 			// Special drawing conditions start
 			match e.entity_type {
 				entity::EntityType::Enemy => {
-					if e.hp == 1 {
-						graphics::set_color(ctx, graphics::Color::new(1.0, 0.3, 0.3, 1.0))?;
+					match e.hp {
+						1 => graphics::set_color(ctx, graphics::Color::new(1.0, 0.0, 0.0, 1.0))?,
+						2 => graphics::set_color(ctx, graphics::Color::new(1.0, 0.4, 0.4, 1.0))?,
+						_ => ()
 					}
 				},
 				entity::EntityType::Player => {
-					if e.hp == 1 {
-						graphics::set_color(ctx, graphics::Color::new(1.0, 0.2, 0.2, 1.0))?;
+					match e.hp {
+						1 => graphics::set_color(ctx, graphics::Color::new(0.4, 0.0, 0.0, 0.9))?,
+						2 => graphics::set_color(ctx, graphics::Color::new(0.6, 0.1, 0.1, 0.95))?,
+						3 => graphics::set_color(ctx, graphics::Color::new(1.0, 0.7, 0.7, 1.0))?,
+						4 => graphics::set_color(ctx, graphics::Color::new(1.0, 0.9, 0.9, 1.0))?,						
+						_ => ()
 					}
 				},
 				_ => {}
@@ -637,10 +753,13 @@ impl event::EventHandler for MainState {
     
 	// Event is triggered when the player presses keydowns
     fn key_down_event(&mut self, _ctx: &mut Context, keycode: Keycode, keymod: Mod, repeat: bool) {
-        println!(
-            "Key pressed: {:?}, modifier {:?}, repeat: {}",
-            keycode, keymod, repeat
-        );
+
+		if SHOW_INPUT_DEBUG {
+			println!(
+				"Key pressed: {:?}, modifier {:?}, repeat: {}",
+				keycode, keymod, repeat
+			);
+		}
         
         if keycode == ggez::event::Keycode::Left {
             self.input.left = true;
@@ -667,10 +786,13 @@ impl event::EventHandler for MainState {
     
 	// Event is triggered when player lifts up on a keys
     fn key_up_event(&mut self, _ctx: &mut Context, keycode: Keycode, keymod: Mod, repeat: bool) {
-        println!(
-            "Key released: {:?}, modifier {:?}, repeat: {}",
-            keycode, keymod, repeat
-        );
+
+		if SHOW_INPUT_DEBUG {
+			println!(
+				"Key released: {:?}, modifier {:?}, repeat: {}",
+				keycode, keymod, repeat
+			);
+		}
         
         if keycode == ggez::event::Keycode::Left {
             self.input.left = false;
