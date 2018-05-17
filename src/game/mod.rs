@@ -1,8 +1,9 @@
 
-
+// Game engine creates
 extern crate ggez;
 extern crate rand;
 
+// Modules and namespaces
 use ggez::{Context, GameResult};
 use ggez::event::{self, Button, MouseState, Keycode, Mod, Axis};
 use ggez::{audio, graphics};
@@ -14,6 +15,8 @@ mod powerupspawner;
 use self::powerupspawner::PowerupSpawner;
 use self::entity::{Lifetime, EntityType, Movement};
 use self::rand::Rng;
+
+// Constants
 
 const DEFAULT_FONT: &str = "/font/FiraSans-Regular.ttf";
 const DEFAULT_FONT_SIZE: u8 = 30;
@@ -27,15 +30,12 @@ const ENEMY_SPAWN_MIN_TIME: u64 = 500; //500 is good
 const ENEMY_SPAWN_MAX_TIME: u64 = 5000; //5000 is good
 const POWERUP_DELAY: i64 = 5_000; 
 
-
-
 const ENEMY_NAMES: [&str;4] = [
 	"NULL POINTER",
 	"DANGLING REF",
 	"SEGFAULT",
 	"DOUBLE FREE",
 ];
-
 
 
 struct Input {
@@ -210,7 +210,8 @@ fn player_bullet_spawner(state: &mut MainState, x: f32, y: f32) {
 			w: 50.0,
 			h: 50.0,
 		},
-		movement: Movement::Linear(0.0, -10_000.0),
+		movement: Movement::Linear(0.0, -600_000.0),
+		//movement: Movement::Linear(0.0, -10_000.0),
 		lifetime: Lifetime::Milliseconds(2_000),
 		seed: 0.0,
 		timer: 0,
@@ -236,7 +237,8 @@ fn enemy_bullet_spawner(state: &mut MainState, x: f32, y: f32) {
 			w: 25.0,
 			h: 25.0,
 		},
-		movement: Movement::Linear(0.0, 7_000.0),
+		//movement: Movement::Linear(0.0, 7_000.0),
+		movement: Movement::Linear(0.0, 420_000.0),
 		lifetime: Lifetime::Milliseconds(8_000),
 		seed: 0.0,
 		timer: 0,
@@ -273,8 +275,8 @@ fn enemy_spawner(state: &mut MainState, ctx: &mut Context) {
 			movement: Movement::Generated(
 				|t,r,s|{
  					(
-						( ( (t as f64) / 1000.0 + s * 1000.0 ).sin() + r.gen_range(-3.0, 3.0) ) as f32,
- 						(1.0 + ( (t as f64) / 900.0 + s * 100.0).sin() ) as f32
+						( ( (t as f64) / 1000.0 + s * 1000.0 ).sin() + r.gen_range(-3.0, 3.0) ) as f32 * 60_f32,
+ 						(1.0 + ( (t as f64) / 900.0 + s * 100.0).sin() ) as f32 * 60_f32
  					)
  				}
 			),
@@ -398,32 +400,43 @@ impl event::EventHandler for MainState {
 
         self.score_text = graphics::Text::new(_ctx, &format!("Score: {}", &self.score.to_string()), &self.score_font).unwrap();
 	
+		// Run thru the list of entities
 		for i in 0..self.entities.len() {
 			{
+
+				// Update lifetimes
 				let e = &mut self.entities[i];
 				e.timer += self.delta_ms;
 				e.lifetime = match e.lifetime {
 					Lifetime::Forever => Lifetime::Forever,
 					Lifetime::Milliseconds(remaining) => Lifetime::Milliseconds(remaining - self.delta_ms as i64),
 				};
+
+				// Process bullet cooldowns
 				e.bullet_cooldown -= self.delta_ms as i64;
 				if e.bullet_cooldown < 0 {
 					e.bullet_cooldown = 0;
 				}
 			
+				// Process movements
+				let delta_movement = (self.delta_ms as f32 / 1000_f32);
 				match e.movement {
 					Movement::None => (),
-					Movement::Linear(x,y) => e.translate(x / 1000_f32, y / 1000_f32),
+					Movement::Linear(x,y) => e.translate(x * delta_movement / 1000_f32, y * delta_movement / 1000_f32),
 					Movement::Generated(func) => {
 						let (x, y) = func(e.timer, &mut self.rng, e.seed);
-						e.translate(x, y);
+						e.translate(x * delta_movement, y * delta_movement);
 					},
 				}
 			}
+
 			match self.entities[i].entity_type {
+
+				// Player only code
+				// This handles the player movements
 				entity::EntityType::Player => {
 					let e = &mut self.entities[i];
-					let vel= e.vel * ((self.delta_ms as f32) / 1000_f32);
+					let vel= e.vel * (self.delta_ms as f32 / 1000_f32);
 	
 					match (self.input.up, self.input.right, self.input.down, self.input.left) {
 						( true, false, false, false) => e.translate(0.0, -vel),
@@ -454,6 +467,8 @@ impl event::EventHandler for MainState {
 					}
 					
 				},
+
+				// Enemy only code
 				entity::EntityType::Enemy => {
 					if self.entities[i].bullet_cooldown == 0 {
 						self.entities[i].bullet_cooldown = ENEMY_BULLET_COOLDOWN;
@@ -462,12 +477,20 @@ impl event::EventHandler for MainState {
 						enemy_bullet_spawner(self, x, y);
 					}
 				},
+
+				// Boss only code
 				entity::EntityType::Boss => (),
+
+				// Player bullet code
 				entity::EntityType::PlayerBullet => {
 					let player_bullet = &mut self.entities[i];
 					player_bullet.angle += self.delta_ms as f32 / 100.0;
 				},
+
+				// Enemy bullet code
 				entity::EntityType::EnemyBullet => (),
+
+				// Powerup codes
 				entity::EntityType::Powerup => (),
 			}
 		}
@@ -563,6 +586,7 @@ impl event::EventHandler for MainState {
         Ok(())
     }
     
+	// Event is triggered when the player presses keydowns
     fn key_down_event(&mut self, _ctx: &mut Context, keycode: Keycode, keymod: Mod, repeat: bool) {
         println!(
             "Key pressed: {:?}, modifier {:?}, repeat: {}",
@@ -592,6 +616,7 @@ impl event::EventHandler for MainState {
 		}
     }
     
+	// Event is triggered when player lifts up on a keys
     fn key_up_event(&mut self, _ctx: &mut Context, keycode: Keycode, keymod: Mod, repeat: bool) {
         println!(
             "Key released: {:?}, modifier {:?}, repeat: {}",
