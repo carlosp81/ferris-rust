@@ -144,6 +144,7 @@ impl MainState {
 		    x: (ctx.conf.window_mode.width as f32 / 2.0) - (s.textures[&entity::EntityType::Player].width() as f32 / 2.0),
             y: ctx.conf.window_mode.height as f32 - s.textures[&entity::EntityType::Player].height() as f32,
             hp: 100,
+			dam: 0,
             vel: 375.0,
 			bounds: graphics::Rect {
 				x: 60.0,
@@ -183,18 +184,6 @@ impl MainState {
     }
 }
 
-// Update state's elapsed ms and delta ms
-fn update_time(state: &mut MainState) {
-	let now = std::time::SystemTime::now();
-	let difference = now.duration_since(std::time::UNIX_EPOCH).expect("Time went backwards");
-	let current_ms = difference.as_secs() * 1000 + difference.subsec_nanos() as u64 / 1_000_000;
-	state.delta_ms = match state.elapsed_ms {
-		0 => 0,
-		_ => current_ms - state.elapsed_ms,
-	};
-	state.elapsed_ms = current_ms;
-}
-
 // Spawns bullets for the player
 fn player_bullet_spawner(state: &mut MainState, x: f32, y: f32) {
 	let bullet = entity::Entity {
@@ -203,6 +192,7 @@ fn player_bullet_spawner(state: &mut MainState, x: f32, y: f32) {
 		x: x as f32 + (state.textures[&entity::EntityType::Player].width() as f32 / 2.0) - (state.textures[&entity::EntityType::PlayerBullet].width() as f32 / 2.0),
 		y: y - (state.textures[&entity::EntityType::PlayerBullet].height() as f32 / 2.0),
 		hp: 1,
+		dam: 1,
 		vel: 10.0,
 		bounds: graphics::Rect {
 			x: 0.0,
@@ -230,6 +220,7 @@ fn enemy_bullet_spawner(state: &mut MainState, x: f32, y: f32) {
 		x: x as f32 + state.textures[&entity::EntityType::Enemy].width() as f32 / 2.0 - state.textures[&entity::EntityType::EnemyBullet].width() as f32 / 2.0,
 		y: y + state.textures[&entity::EntityType::Enemy].height() as f32 / 2.0 - state.textures[&entity::EntityType::EnemyBullet].height() as f32 / 2.0,
 		hp: 1,
+		dam: 1,
 		vel: 1000.0,
 		bounds: graphics::Rect {
 			x: 0.0,
@@ -264,7 +255,8 @@ fn enemy_spawner(state: &mut MainState, ctx: &mut Context) {
 			entity_type: entity::EntityType::Enemy,
 			x: state.rng.gen_range(0.0, 720.0),
 			y: -50.0,
-			hp: 1,
+			hp: 2,
+			dam: 1,
 			vel: 100.0,
 			bounds: graphics::Rect {
 				x: 18.0,
@@ -294,11 +286,13 @@ fn enemy_spawner(state: &mut MainState, ctx: &mut Context) {
 	}
 }
 
-// Generates enemies randomly over time
+// Collision detection
 fn collision_detection(state: &mut MainState) {
+
 	// Iterate through subject entities
 	for entity_idx in 0..state.entities.len() {
 		match state.entities[entity_idx].entity_type {
+
 			EntityType::Player => {
 				for threat_idx in 0..state.entities.len() {
 					match state.entities[threat_idx].entity_type {
@@ -330,9 +324,12 @@ fn collision_detection(state: &mut MainState) {
 					}
 				}
 			},
+
 			EntityType::PlayerBullet => {
 			},
+
 			EntityType::EnemyBullet => (),
+
 			// If we are an enemy (entity_idx)
 			EntityType::Enemy => {
 				for threat_idx in 0..state.entities.len() {
@@ -350,6 +347,7 @@ fn collision_detection(state: &mut MainState) {
 					}
 				}
 			},
+
 			_ => (),
 		}
 	}
@@ -376,7 +374,21 @@ fn colliding(state: &mut MainState, a: usize, b: usize) -> bool{
 		false
 	}
 }
-		
+
+
+// Update state's elapsed ms and delta ms
+fn update_time(state: &mut MainState) {
+	let now = std::time::SystemTime::now();
+	let difference = now.duration_since(std::time::UNIX_EPOCH).expect("Time went backwards");
+	let current_ms = difference.as_secs() * 1000 + difference.subsec_nanos() as u64 / 1_000_000;
+	state.delta_ms = match state.elapsed_ms {
+		0 => 0,
+		_ => current_ms - state.elapsed_ms,
+	};
+	state.elapsed_ms = current_ms;
+}
+
+
 // Then we implement the `ggez:event::EventHandler` trait on it, which
 // requires callbacks for updating and drawing the game state each frame.
 //

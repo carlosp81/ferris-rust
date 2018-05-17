@@ -41,6 +41,7 @@ impl PowerupSpawner {
                 x: 0.0,
                 y: 0.0,
                 hp: 1,
+                dam: 0,
                 vel: 0.0,
                 bounds: graphics::Rect {
                     x: 0.0,
@@ -55,8 +56,10 @@ impl PowerupSpawner {
                 bullet_cooldown: 0,
                 angle: 0.0,
             };
+
             // Reset cooldown.
             self.current_cooldown = self.max_cooldown;
+
             // Return powerup entity option type.
             return Some(e);
         }
