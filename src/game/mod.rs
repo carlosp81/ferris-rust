@@ -10,9 +10,9 @@ use ggez::{audio, graphics};
 use std;
 
 mod entity;
-mod powerupspawner;
+mod entity_spawner;
 
-use self::powerupspawner::PowerupSpawner;
+use self::entity_spawner::EntitySpawner;
 use self::entity::{Lifetime, EntityType, Movement};
 use self::rand::Rng;
 
@@ -36,14 +36,6 @@ const SHOW_INPUT_DEBUG: bool = false;
 const ENEMY_SPAWN_MIN_TIME: u64 = 500; //500 is good
 const ENEMY_SPAWN_MAX_TIME: u64 = 5000; //5000 is good
 const POWERUP_DELAY: i64 = 15_000; 
-
-const ENEMY_NAMES: [&str;4] = [
-	"NULL POINTER",
-	"DANGLING REF",
-	"SEGFAULT",
-	"DOUBLE FREE",
-];
-
 
 struct Input {
     left: bool,
@@ -84,7 +76,7 @@ impl event::EventHandler for MenuState {
 
 // First we make a structure to contain the game's state
 pub struct MainState {
-	powerups: PowerupSpawner,
+	spawner: EntitySpawner,
     score_text: graphics::Text,
     frames: usize,
     entities: Vec<entity::Entity>,
@@ -112,7 +104,7 @@ impl MainState {
 		let score_text = graphics::Text::new(ctx, "Score: ", &score_font)?;
 
         let mut s = MainState {
-			powerups: PowerupSpawner::new(POWERUP_DELAY),
+			spawner: EntitySpawner::new(POWERUP_DELAY, ctx),
             score_text,
             frames: 0,
             entities: Vec::new(),
@@ -304,26 +296,25 @@ fn schedule(state: &mut MainState, ctx: &mut Context) {
 	// Release a 10 enemies enemy on 12000 ms
  	for i in (1..10).rev() {
 		let enemy_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 14);
-		let name = ENEMY_NAMES[state.rng.gen::<usize>() % ENEMY_NAMES.len()].clone();
-		state.schedule.push((12000 + ((i as u64) * 100_u64), gen_basic_enemy(100_f32 + (i as f32) * 100_f32 , -50_f32, 
-			graphics::Text::new(ctx, name, &enemy_font.unwrap()).unwrap(), state.rng.gen_range(-1.0, 1.0))));
+		//state.schedule.push((12000 + ((i as u64) * 100_u64), gen_basic_enemy(100_f32 + (i as f32) * 100_f32 , -50_f32, 
+		//	graphics::Text::new(ctx, name, &enemy_font.unwrap()).unwrap(), state.rng.gen_range(-1.0, 1.0))));
 	}
 
 	// Release like 5 enemies enemy on 5000 ms
 	for i in (1..5).rev() {
-		let enemy_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 14);
-		let name = ENEMY_NAMES[state.rng.gen::<usize>() % ENEMY_NAMES.len()].clone();
-		state.schedule.push((5000 + ((i as u64) * 100_u64), gen_basic_enemy(200_f32 + (i as f32) * 80_f32 , -50_f32, 
-			graphics::Text::new(ctx, name, &enemy_font.unwrap()).unwrap(), state.rng.gen_range(-1.0, 1.0))));
+		//let enemy_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 14);
+		//let name = ENEMY_NAMES[state.rng.gen::<usize>() % ENEMY_NAMES.len()].clone();
+		//state.schedule.push((5000 + ((i as u64) * 100_u64), gen_basic_enemy(200_f32 + (i as f32) * 80_f32 , -50_f32, 
+		//	graphics::Text::new(ctx, name, &enemy_font.unwrap()).unwrap(), state.rng.gen_range(-1.0, 1.0))));
 	}
 
 
 	// Release an enemy on 1000
 	{
-		let enemy_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 14);
-		let name = ENEMY_NAMES[state.rng.gen::<usize>() % ENEMY_NAMES.len()].clone();
-		state.schedule.push((1000, gen_basic_enemy(300_f32, -50_f32, 
-			graphics::Text::new(ctx, name, &enemy_font.unwrap()).unwrap(), state.rng.gen_range(-1.0, 1.0))));
+		//let enemy_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 14);
+		//let name = ENEMY_NAMES[state.rng.gen::<usize>() % ENEMY_NAMES.len()].clone();
+		//state.schedule.push((1000, gen_basic_enemy(300_f32, -50_f32, 
+		//	graphics::Text::new(ctx, name, &enemy_font.unwrap()).unwrap(), state.rng.gen_range(-1.0, 1.0))));
 	}
 
 	
@@ -359,7 +350,7 @@ fn enemy_spawner(state: &mut MainState, ctx: &mut Context) {
 		
 		let enemy_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 14);
 
-		let name = ENEMY_NAMES[state.rng.gen::<usize>() % ENEMY_NAMES.len()].clone();
+		let name = "";//ENEMY_NAMES[state.rng.gen::<usize>() % ENEMY_NAMES.len()].clone();
 		
 		let enemy = entity::Entity {
 			text: graphics::Text::new(ctx, name, &enemy_font.unwrap()).unwrap(),
@@ -523,14 +514,14 @@ impl event::EventHandler for MainState {
 		if USE_BETA_SCHEDULER {
 			scheduler(self, _ctx);
 		} else {
-			enemy_spawner(self, _ctx);
+			//enemy_spawner(self, _ctx);
 		}
 		collision_detection(self);
 		
-		match self.powerups.update(self.delta_ms, _ctx) {
+		match self.spawner.update(self.delta_ms, _ctx) {
 			Some(mut e) => {
-				e.x = self.rng.gen_range(0.0, _ctx.conf.window_mode.width as f32 - self.textures[&entity::EntityType::Powerup].width() as f32);
-				self.entities.push(e)},
+				self.entities.push(e);
+			},
 			None => (),
 		}
 
@@ -557,7 +548,7 @@ impl event::EventHandler for MainState {
 				}
 			
 				// Process movements
-				let delta_movement = (self.delta_ms as f32 / 1000_f32);
+				let delta_movement = self.delta_ms as f32 / 1000_f32;
 				match e.movement {
 					Movement::None => (),
 					Movement::Linear(x,y) => e.translate(x * delta_movement / 1000_f32, y * delta_movement / 1000_f32),
@@ -646,10 +637,18 @@ impl event::EventHandler for MainState {
 			}
 		}
 		
-		// Kill off dead entities
-		self.entities.retain(|e| match e.lifetime {
-			Lifetime::Forever => true && e.hp > 0,
-			Lifetime::Milliseconds(r) => r > 0 && e.hp > 0,
+		// Handle dying entities
+		self.entities.retain(|e| {
+			let dying = match e.lifetime {
+				Lifetime::Forever => e.hp <= 0,
+				Lifetime::Milliseconds(r) => r <= 0 || e.hp <= 0,
+			};
+			if dying {
+				match e.entity_type {
+					_ => (),
+				}
+			}
+			!dying
 		});
 		
         Ok(())
@@ -720,7 +719,7 @@ impl event::EventHandler for MainState {
 			graphics::set_color(ctx, graphics::Color::new(1.0, 1.0, 1.0, 1.0))?;
 			
 			// If this is an enemy, include a name tag.
-			if(e.entity_type == entity::EntityType::Enemy) {
+			if e.entity_type == entity::EntityType::Enemy {
 				let offset = 30.0;
 				let text_pos = graphics::Point2::new(
 					e.x + texture.width() as f32 + offset, 
