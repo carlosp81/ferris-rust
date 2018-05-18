@@ -1,21 +1,15 @@
 
 extern crate ggez;
 extern crate rand;
-use ggez::{Context, GameResult};
-use ggez::GameError;
-use ggez::{audio, graphics};
+use ggez::{Context,graphics};
 use self::rand::Rng;
-use game::MainState;
-use game::entity::Lifetime;
-use game::entity::Movement;
-use game::entity::Entity;
-use game::entity::EntityType;
+use game::entity::{Lifetime, Movement, Entity, EntityType};
 use game::DEFAULT_FONT;
 use std;
 
 const ENEMY_FONT_SIZE: u32 = 18;
 const ENEMY_COOLDOWN: i64 = 1_000;
-const POWERUP_COOLDOWN: i64 = 30_000;
+const POWERUP_COOLDOWN: i64 = 5_000;
 const ENEMY_NAMES: [&str;4] = [
 	"NULL POINTER",
 	"DANGLING REF",
@@ -28,11 +22,11 @@ pub struct EntitySpawner {
     //pub current_cooldown: i64,
     pub text: graphics::Text,
     pub rng: rand::ThreadRng,
-    pub cooldowns: std::collections::HashMap::<EntityType, i64>,
+    pub cooldowns: std::collections::HashMap<EntityType, i64>,
 }
 
 impl EntitySpawner {
-    pub fn new(cooldown: i64, ctx: &mut Context) -> EntitySpawner {
+    pub fn new(ctx: &mut Context) -> EntitySpawner {
         
         let font = graphics::Font::new(ctx, DEFAULT_FONT, 48);
         let text = graphics::Text::new(ctx, "", &font.unwrap()).unwrap();
@@ -91,19 +85,19 @@ impl EntitySpawner {
 
         let e = Entity {
             text: self.text.clone(),
-            entity_type: EntityType::Enemy,
+            entity_type: EntityType::Powerup,
             x: 0.0,
             y: 0.0,
             hp: 1,
             dam: 1,
-            vel: 0.0,
+            vel: 10.0,
         	bounds: graphics::Rect {
 				x: 0.0,
 				y: 0.0,
 				w: 32.0,
 				h: 32.0,
 			},
-			movement: Movement::Linear(0.0, 700.0),
+			movement: Movement::Linear(0.0, 50.0),
 			lifetime: Lifetime::Milliseconds(100_000),
 			seed: self.rng.gen_range(-1.0, 1.0),
 			timer: 0,
@@ -115,20 +109,22 @@ impl EntitySpawner {
     }
 
     pub fn update(&mut self, delta_ms: u64, ctx: &mut Context) -> Option<Entity> {
+        let current_enemy_cooldown = self.cooldowns[&EntityType::Enemy];
+        let current_powerup_cooldown = self.cooldowns[&EntityType::Powerup];
+
+        self.cooldowns.insert(EntityType::Enemy, current_enemy_cooldown - delta_ms as i64);
+        self.cooldowns.insert(EntityType::Powerup, current_powerup_cooldown - delta_ms as i64);
+
         // Spawn enemies
-        let current = self.cooldowns[&EntityType::Enemy];
-        self.cooldowns.insert(EntityType::Enemy, current - delta_ms as i64);
         if self.cooldowns[&EntityType::Enemy] <= 0 {
             self.cooldowns.insert(EntityType::Enemy, ENEMY_COOLDOWN);
             let mut e = self.spawn_enemy(ctx);
             e.x = self.rng.gen_range(0.0, ctx.conf.window_mode.width as f32);
-            e.y = -30.0;
+            e.y = -45.0;
             return Some(e);
         }
 
         // Spawn powerups
-        let current = self.cooldowns[&EntityType::Powerup];
-        self.cooldowns.insert(EntityType::Powerup, current - delta_ms as i64);
         if self.cooldowns[&EntityType::Powerup] <= 0 {
             self.cooldowns.insert(EntityType::Powerup, POWERUP_COOLDOWN);
             let mut e = self.spawn_powerup();
@@ -137,28 +133,7 @@ impl EntitySpawner {
             return Some(e);
         }
 
-        /*
-        for (k,v) in self.cooldowns.iter() {
-            if v.0 <= 0 {
-                v.0 = v.1;
-                match k {
-                    EntityType::Enemy => {
-                        let mut e = self.spawn_enemy();
-                        e.x = self.rng.gen_range(0.0, ctx.conf.window_mode.width as f32);
-                        e.y = -30.0;
-                        return Some(e);
-                    },
-                    EntityType::Powerup => {
-                        let mut p = self.spawn_powerup();
-                        p.x = self.rng.gen_range(0.0, ctx.conf.window_mode.width as f32);
-                        p.y = -10.0;
-                        return Some(p);
-                    },
-                    _ => (),
-                }
-            }
-            v.0 -= delta_ms as i64;
-        }*/
+      
         None
     }
 }

@@ -3,7 +3,6 @@ extern crate ggez;
 extern crate rand;
 
 use ggez::graphics;
-use self::rand::Rng;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum EntityType {

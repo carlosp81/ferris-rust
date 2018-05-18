@@ -5,7 +5,7 @@ extern crate rand;
 
 // Modules and namespaces
 use ggez::{Context, GameResult};
-use ggez::event::{self, Button, MouseState, Keycode, Mod, Axis};
+use ggez::event::{self, Keycode, Mod};
 use ggez::{audio, graphics};
 use std;
 
@@ -14,28 +14,28 @@ mod entity_spawner;
 
 use self::entity_spawner::EntitySpawner;
 use self::entity::{Lifetime, EntityType, Movement};
-use self::rand::Rng;
 
 // Constants
 
 const DEFAULT_FONT: &str = "/font/FiraSans-Regular.ttf";
-const DEFAULT_FONT_SIZE: u8 = 30;
+const DEFAULT_FONT_SIZE: u32 = 30;
 const PLAYER_BULLET_COOLDOWN: i64 = 250;
+const BULLET_SPEED: f32 = 400.0;
 const ENEMY_BULLET_COOLDOWN: i64 = 2_000;
 const DRAW_BOUNDING_BOXES: bool = true;
 const DISABLE_SFX: bool = false;
 
 // Adjust this to start further ahead or behind in the spawn schedule
-const SCHEDULE_OFFSET: u64 = 0;
-const USE_BETA_SCHEDULER: bool = false;
+//const SCHEDULE_OFFSET: u64 = 0;
+//const USE_BETA_SCHEDULER: bool = false;
 const SHOW_INPUT_DEBUG: bool = false;
 
 //const WINDOW_WIDTH: f32 = 1024.0;
 //const WINDOW_HEIGHT: f32 = 1024.0;
 
-const ENEMY_SPAWN_MIN_TIME: u64 = 500; //500 is good
-const ENEMY_SPAWN_MAX_TIME: u64 = 5000; //5000 is good
-const POWERUP_DELAY: i64 = 15_000; 
+//const ENEMY_SPAWN_MIN_TIME: u64 = 500; //500 is good
+//const ENEMY_SPAWN_MAX_TIME: u64 = 5000; //5000 is good
+//const POWERUP_DELAY: i64 = 15_000; 
 
 struct Input {
     left: bool,
@@ -52,7 +52,7 @@ pub struct MenuState {
 impl MenuState {
     pub fn new(ctx: &mut Context) -> GameResult<MenuState> {
 		
-        let mut s = MenuState {
+        let s = MenuState {
 		};
         Ok(s)
 	}
@@ -87,12 +87,13 @@ pub struct MainState {
 	start_time: std::time::SystemTime,
 	elapsed_ms: u64,
 	delta_ms: u64,
-	textures: std::collections::HashMap::<entity::EntityType, graphics::Image>,
+	textures: std::collections::HashMap<entity::EntityType, graphics::Image>,
 	bgm: audio::Source,
 	rng: rand::ThreadRng,
-	last_spawned: u64,
-	schedule: Vec<(u64, entity::Entity)>,
-	sfx: std::collections::HashMap::<&'static str, audio::Source>,
+	//last_spawned: u64,
+	//schedule: Vec<(u64, entity::Entity)>,
+	sfx: std::collections::HashMap<&'static str, audio::Source>,
+	quit: bool,
 }
 
 impl MainState {
@@ -104,7 +105,7 @@ impl MainState {
 		let score_text = graphics::Text::new(ctx, "Score: ", &score_font)?;
 
         let mut s = MainState {
-			spawner: EntitySpawner::new(POWERUP_DELAY, ctx),
+			spawner: EntitySpawner::new(ctx),
             score_text,
             frames: 0,
             entities: Vec::new(),
@@ -124,9 +125,10 @@ impl MainState {
 			textures: std::collections::HashMap::new(),
 			bgm: audio::Source::new(ctx, "/sounds/Tejaswi-Hyperbola.ogg")?,
 			rng: rand::thread_rng(),
-			last_spawned: 0,
-			schedule: Vec::<(u64, entity::Entity)>::new(),
+			//last_spawned: 0,
+			//schedule: Vec::<(u64, entity::Entity)>::new(),
 			sfx: std::collections::HashMap::new(),
+			quit: false,
 		};
 		
 		// Set up textures
@@ -139,9 +141,9 @@ impl MainState {
 		// Set up sound effects
 		s.sfx.insert("player_shot", audio::Source::new(ctx, "/sounds/player_shot.wav")?);
 		
-		let player_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 24)?;
+		let player_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", DEFAULT_FONT_SIZE)?;
 
-		let mut player = entity::Entity {
+		let player = entity::Entity {
 			text: graphics::Text::new(ctx, "", &player_font)?,
             entity_type: entity::EntityType::Player,
 		    x: (ctx.conf.window_mode.width as f32 / 2.0) - (s.textures[&entity::EntityType::Player].width() as f32 / 2.0),
@@ -168,9 +170,9 @@ impl MainState {
 			s.bgm.play()?;
 		}
 		
-		if USE_BETA_SCHEDULER {
-			schedule(& mut s, ctx);
-		}
+		//if USE_BETA_SCHEDULER {
+			//schedule(& mut s, ctx);
+		//}
 	
         //let resolutions = ggez::graphics::get_fullscreen_modes(ctx, 0)?;
 		
@@ -193,7 +195,7 @@ impl MainState {
 }
 
 // Spawns bullets for the player
-fn player_bullet_spawner(state: &mut MainState, x: f32, y: f32) {
+fn player_bullet_spawner(state: &mut MainState, x: f32, y: f32) -> GameResult<()> {
 	let bullet = entity::Entity {
 		text: state.score_text.clone(),
 		entity_type: entity::EntityType::PlayerBullet,
@@ -208,7 +210,8 @@ fn player_bullet_spawner(state: &mut MainState, x: f32, y: f32) {
 			w: 50.0,
 			h: 50.0,
 		},
-		movement: Movement::Linear(0.0, -600_000.0),
+		
+		movement: Movement::Linear(0.0, -BULLET_SPEED),
 		//movement: Movement::Linear(0.0, -10_000.0),
 		lifetime: Lifetime::Milliseconds(2_000),
 		seed: 0.0,
@@ -218,9 +221,9 @@ fn player_bullet_spawner(state: &mut MainState, x: f32, y: f32) {
 	};
 	state.entities.push(bullet);
 	if !DISABLE_SFX {
-		state.sfx["player_shot"].play();
+		state.sfx["player_shot"].play()?;
 	}
-	
+	Ok(())
 }
 
 // Spawns bullets for the enemy
@@ -240,7 +243,7 @@ fn enemy_bullet_spawner(state: &mut MainState, x: f32, y: f32) {
 			h: 25.0,
 		},
 		//movement: Movement::Linear(0.0, 7_000.0),
-		movement: Movement::Linear(0.0, 420_000.0),
+		movement: Movement::Linear(0.0, BULLET_SPEED),
 		lifetime: Lifetime::Milliseconds(8_000),
 		seed: 0.0,
 		timer: 0,
@@ -250,44 +253,7 @@ fn enemy_bullet_spawner(state: &mut MainState, x: f32, y: f32) {
 	state.entities.push(bullet);
 }
 
-// Generate enemies based on a schedule
-fn gen_basic_enemy(t_x: f32, t_y: f32, txt: graphics::Text, t_seed: f64) -> entity::Entity {
-
-	
-	entity::Entity {
-		text: txt,
-		entity_type: entity::EntityType::Enemy,
-		x: t_x,
-		y: t_y,
-		hp: 3,
-		dam: 1,
-		vel: 100.0,
-		bounds: graphics::Rect {
-			x: 18.0,
-			y: 5.0,
-			w: 44.0,
-			h: 60.0,
-		},
-		movement: Movement::Generated(
-			|t,r,s|{
-				(
-					( ( (t as f64) / 1000.0 + s * 1000.0 ).sin() + r.gen_range(-3.0, 3.0) ) as f32 * 60_f32,
-					(1.0 + ( (t as f64) / 900.0 + s * 100.0).sin() ) as f32 * 60_f32
-				)
-			}
-		),
-		/*movement: Movement::Linear(
-			state.rng.gen_range(-600.0, 600.0),
-			state.rng.gen_range(300.0, 1000.0),
-		),*/
-		lifetime: Lifetime::Milliseconds(100_000),
-		seed: t_seed,
-		timer: 0,
-		bullet_cooldown: 0,
-		angle: 0.0,
-	}
-}
-
+/*
 // Setup the schedule
 fn schedule(state: &mut MainState, ctx: &mut Context) {
 
@@ -295,7 +261,7 @@ fn schedule(state: &mut MainState, ctx: &mut Context) {
 
 	// Release a 10 enemies enemy on 12000 ms
  	for i in (1..10).rev() {
-		let enemy_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 14);
+		//let enemy_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 14);
 		//state.schedule.push((12000 + ((i as u64) * 100_u64), gen_basic_enemy(100_f32 + (i as f32) * 100_f32 , -50_f32, 
 		//	graphics::Text::new(ctx, name, &enemy_font.unwrap()).unwrap(), state.rng.gen_range(-1.0, 1.0))));
 	}
@@ -319,7 +285,8 @@ fn schedule(state: &mut MainState, ctx: &mut Context) {
 
 	
 }
-
+*/
+/*
 fn scheduler(state: &mut MainState, ctx: &mut Context) {
 	let mut cont : bool = true;
 
@@ -341,52 +308,7 @@ fn scheduler(state: &mut MainState, ctx: &mut Context) {
 	}
 	
 }
-
-// Generates enemies randomly over time
-fn enemy_spawner(state: &mut MainState, ctx: &mut Context) {
-	// Spawn randomly between a time range on a chance.
-	if state.elapsed_ms - state.last_spawned > state.rng.gen_range(ENEMY_SPAWN_MIN_TIME, ENEMY_SPAWN_MAX_TIME) {
-		state.last_spawned = state.elapsed_ms;
-		
-		let enemy_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 14);
-
-		let name = "";//ENEMY_NAMES[state.rng.gen::<usize>() % ENEMY_NAMES.len()].clone();
-		
-		let enemy = entity::Entity {
-			text: graphics::Text::new(ctx, name, &enemy_font.unwrap()).unwrap(),
-			entity_type: entity::EntityType::Enemy,
-			x: state.rng.gen_range(0.0, 720.0),
-			y: -50.0,
-			hp: 3,
-			dam: 1,
-			vel: 100.0,
-			bounds: graphics::Rect {
-				x: 18.0,
-				y: 5.0,
-				w: 44.0,
-				h: 60.0,
-			},
-			movement: Movement::Generated(
-				|t,r,s|{
- 					(
-						( ( (t as f64) / 1000.0 + s * 1000.0 ).sin() + r.gen_range(-3.0, 3.0) ) as f32 * 60_f32,
- 						(1.0 + ( (t as f64) / 900.0 + s * 100.0).sin() ) as f32 * 60_f32
- 					)
- 				}
-			),
-			/*movement: Movement::Linear(
-				state.rng.gen_range(-600.0, 600.0),
-				state.rng.gen_range(300.0, 1000.0),
-			),*/
-			lifetime: Lifetime::Milliseconds(100_000),
-			seed: state.rng.gen_range(-1.0, 1.0),
-			timer: 0,
-			bullet_cooldown: 0,
-			angle: 0.0,
-		};
-		state.entities.push(enemy);
-	}
-}
+*/
 
 // Collision detection
 fn collision_detection(state: &mut MainState) {
@@ -508,18 +430,21 @@ fn update_time(state: &mut MainState) {
 // that you can override if you wish, but the defaults are fine.
 impl event::EventHandler for MainState {
     fn update(&mut self, _ctx: &mut Context) -> GameResult<()> {
-        
+        if self.quit {
+			_ctx.quit()?;
+		}
 		update_time(self);
 
-		if USE_BETA_SCHEDULER {
-			scheduler(self, _ctx);
-		} else {
+		//if USE_BETA_SCHEDULER {
+			//scheduler(self, _ctx);
+		//} else {
 			//enemy_spawner(self, _ctx);
-		}
+		//}
 		collision_detection(self);
 		
+		
 		match self.spawner.update(self.delta_ms, _ctx) {
-			Some(mut e) => {
+			Some(e) => {
 				self.entities.push(e);
 			},
 			None => (),
@@ -548,13 +473,13 @@ impl event::EventHandler for MainState {
 				}
 			
 				// Process movements
-				let delta_movement = self.delta_ms as f32 / 1000_f32;
+				let delta_time = self.delta_ms as f32 / 1000_f32;
 				match e.movement {
 					Movement::None => (),
-					Movement::Linear(x,y) => e.translate(x * delta_movement / 1000_f32, y * delta_movement / 1000_f32),
+					Movement::Linear(x,y) => e.translate(x * delta_time, y * delta_time),
 					Movement::Generated(func) => {
 						let (x, y) = func(e.timer, &mut self.rng, e.seed);
-						e.translate(x * delta_movement, y * delta_movement);
+						e.translate(x * delta_time, y * delta_time);
 					},
 				}
 			}
@@ -603,7 +528,7 @@ impl event::EventHandler for MainState {
 
 				// Enemy only code
 				entity::EntityType::Enemy => {
-					if self.entities[i].bullet_cooldown == 0 {
+					if self.entities[i].bullet_cooldown <= 0 {
 						self.entities[i].bullet_cooldown = ENEMY_BULLET_COOLDOWN;
 						let x = self.entities[i].x;
 						let y = self.entities[i].y;
@@ -633,7 +558,7 @@ impl event::EventHandler for MainState {
 				self.entities[0].bullet_cooldown = PLAYER_BULLET_COOLDOWN;
 				let x = self.entities[0].x;
 				let y = self.entities[0].y;
-				player_bullet_spawner(self, x, y);
+				player_bullet_spawner(self, x, y)?;
 			}
 		}
 		
@@ -651,9 +576,9 @@ impl event::EventHandler for MainState {
 			!dying
 		});
 		
+
         Ok(())
     }
-
     fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
         graphics::clear(ctx);
 
@@ -665,15 +590,15 @@ impl event::EventHandler for MainState {
 		graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, 0.0 + (self.elapsed_ms/40%1920) as f32), 0.0)?;
 		graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, -1920.0 + (self.elapsed_ms/40 % 1920) as f32), 0.0)?;
 
-		let player_x = self.entities[0].x;
-		let player_y = self.entities[0].y;
+		//let player_x = self.entities[0].x;
+		//let player_y = self.entities[0].y;
 		//println!("Player x = {}, Player y = {}", player_x / 10.0, player_y / 50.0 - 5.0);
 		
 		// Draw all entities
 		for e in &mut self.entities {
 			let pos = graphics::Point2::new(e.x, e.y);
 			let texture = &self.textures[&e.entity_type];
-			let text_size_div_2 =  graphics::Point2::new(e.text.width() as f32 / 2.0, e.text.height() as f32 / 2.0);
+			//let text_size_div_2 =  graphics::Point2::new(e.text.width() as f32 / 2.0, e.text.height() as f32 / 2.0);
 
 			// Draw the entity sprite axis-aligned
 			//graphics::draw(ctx, texture, pos, 0.0)?;
@@ -712,7 +637,7 @@ impl event::EventHandler for MainState {
 				let angle = e.angle as f64 + (5.0 * std::f64::consts::PI / 4.0);
 				let x = (half_width + half_width * (2.0_f64).sqrt() * angle.cos()) as f32;
 				let y = (half_width + half_width * (2.0_f64).sqrt() * angle.sin()) as f32;
-				graphics::draw(ctx, texture, graphics::Point2::new(e.x + x, e.y+ y), e.angle);
+				graphics::draw(ctx, texture, graphics::Point2::new(e.x + x, e.y+ y), e.angle)?;
 			}
 		
 			// End drawing conditions: Reset drawing conditions
@@ -728,7 +653,7 @@ impl event::EventHandler for MainState {
 				graphics::draw(ctx, &e.text, text_pos, 0.0)?;
 				graphics::line(ctx, &[
 					graphics::Point2::new(text_pos.x - 5.0, text_pos.y + e.text.height() as f32),
-					graphics::Point2::new(pos.x + texture.width() as f32, pos.y)], 1.0);
+					graphics::Point2::new(pos.x + texture.width() as f32, pos.y)], 1.0)?;
 			}
 			
 			// Draw collision boxes if they are enabled.
@@ -783,7 +708,7 @@ impl event::EventHandler for MainState {
 			self.input.shoot = true;
 		}
 		if keycode == ggez::event::Keycode::Escape {
-			_ctx.quit();
+			self.quit = true;
 		}
     }
     

@@ -3,9 +3,9 @@
 extern crate ggez;
 
 use ggez::conf;
-use ggez::{Context, GameResult};
-use ggez::event::{self, Button, MouseState, Keycode, Mod, Axis};
-use ggez::graphics;
+use ggez::{Context};
+use ggez::event::{self};
+
 use std::env;
 use std::path;
 
