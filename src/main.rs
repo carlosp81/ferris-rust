@@ -8,6 +8,7 @@ use ggez::event::{self};
 
 use std::env;
 use std::path;
+use std::fs::File;
 
 mod game;
 // Now our main function, which does three things:
@@ -19,8 +20,23 @@ mod game;
 // do the work of creating our MainState and running our game.
 // * Then, just call `game.run()` which runs the `Game` mainloop.
 pub fn main() {
-    let c = conf::Conf::new();
-    let ctx = &mut Context::load_from_conf("helloworld", "ggez", c).unwrap();
+    //let c = conf::Conf::new();
+    let mut file = match File::open("conf.toml") {
+        Ok(f) => f,
+        Err(e) => {
+          println!("{:?}", e);
+          std::process::exit(1);
+        },
+    };
+    let c = match conf::Conf::from_toml_file(&mut file) {
+        Ok(f) => f,
+        Err(e) => {
+          println!("{:?}", e);
+          std::process::exit(1);
+	},
+    };
+
+    let ctx = &mut Context::load_from_conf("Ferris Crustacean's Day Off", "ggez", c).unwrap();
 
     // We add the CARGO_MANIFEST_DIR/resources to the filesystem's path
     // so that ggez will look in our cargo project directory for files.
