@@ -24,6 +24,7 @@ const BULLET_SPEED: f32 = 400.0;
 const ENEMY_BULLET_COOLDOWN: i64 = 2_000;
 const DRAW_BOUNDING_BOXES: bool = true;
 const DISABLE_SFX: bool = false;
+const N_MENU_SELECTIONS: u32 = 1;
 
 // Adjust this to start further ahead or behind in the spawn schedule
 //const SCHEDULE_OFFSET: u64 = 0;
@@ -43,35 +44,6 @@ struct Input {
     up: bool,
     down: bool,
 	shoot: bool,
-}
-
-pub struct MenuState {
-	
-}
-
-impl MenuState {
-    pub fn new(_ctx: &mut Context) -> GameResult<MenuState> {
-		
-        let s = MenuState {
-		};
-        Ok(s)
-	}
-}
-
-impl event::EventHandler for MenuState {
-    fn update(&mut self, _ctx: &mut Context) -> GameResult<()> {
-		Ok(())
-	}
-	
-	fn draw(&mut self, _ctx: &mut Context) -> GameResult<()> {
-		Ok(())
-	}
-
-    fn key_down_event(&mut self, _ctx: &mut Context, _keycode: Keycode, _keymod: Mod, _repeat: bool) {
-	}
-	
-    fn key_up_event(&mut self, _ctx: &mut Context, _keycode: Keycode, _keymod: Mod, _repeat: bool) {
-	}
 }
 
 // First we make a structure to contain the game's state
@@ -192,65 +164,6 @@ impl MainState {
 		//});
         Ok(s)
     }
-}
-
-// Spawns bullets for the player
-fn player_bullet_spawner(state: &mut MainState, x: f32, y: f32) -> GameResult<()> {
-	let bullet = entity::Entity {
-		text: state.score_text.clone(),
-		entity_type: entity::EntityType::PlayerBullet,
-		x: x as f32 + (state.textures[&entity::EntityType::Player].width() as f32 / 2.0) - (state.textures[&entity::EntityType::PlayerBullet].width() as f32 / 2.0),
-		y: y - (state.textures[&entity::EntityType::PlayerBullet].height() as f32 / 2.0),
-		hp: 1,
-		dam: 1,
-		vel: 10.0,
-		bounds: graphics::Rect {
-			x: 0.0,
-			y: 0.0,
-			w: 50.0,
-			h: 50.0,
-		},
-		
-		movement: Movement::Linear(0.0, -BULLET_SPEED),
-		//movement: Movement::Linear(0.0, -10_000.0),
-		lifetime: Lifetime::Milliseconds(2_000),
-		seed: 0.0,
-		timer: 0,
-		bullet_cooldown: 0,
-		angle: 0.0,
-	};
-	state.entities.push(bullet);
-	if !DISABLE_SFX {
-		state.sfx["player_shot"].play()?;
-	}
-	Ok(())
-}
-
-// Spawns bullets for the enemy
-fn enemy_bullet_spawner(state: &mut MainState, x: f32, y: f32) {
-	let bullet = entity::Entity {
-		text: state.score_text.clone(),
-		entity_type: entity::EntityType::EnemyBullet,
-		x: x as f32 + state.textures[&entity::EntityType::Enemy].width() as f32 / 2.0 - state.textures[&entity::EntityType::EnemyBullet].width() as f32 / 2.0,
-		y: y + state.textures[&entity::EntityType::Enemy].height() as f32 / 2.0 - state.textures[&entity::EntityType::EnemyBullet].height() as f32 / 2.0,
-		hp: 1,
-		dam: 1,
-		vel: 1000.0,
-		bounds: graphics::Rect {
-			x: 0.0,
-			y: 0.0,
-			w: 25.0,
-			h: 25.0,
-		},
-		//movement: Movement::Linear(0.0, 7_000.0),
-		movement: Movement::Linear(0.0, BULLET_SPEED),
-		lifetime: Lifetime::Milliseconds(8_000),
-		seed: 0.0,
-		timer: 0,
-		bullet_cooldown: 0,
-		angle: 0.0,
-	};
-	state.entities.push(bullet);
 }
 
 /*
@@ -456,118 +369,41 @@ impl event::EventHandler for MainState {
 	
 		// Run thru the list of entities
 		for i in 0..self.entities.len() {
-			{
-
-				// Update lifetimes
-				let e = &mut self.entities[i];
-				e.timer += self.delta_ms;
-				e.lifetime = match e.lifetime {
-					Lifetime::Forever => Lifetime::Forever,
-					Lifetime::Milliseconds(remaining) => Lifetime::Milliseconds(remaining - self.delta_ms as i64),
-				};
-
-				// Process bullet cooldowns
-				e.bullet_cooldown -= self.delta_ms as i64;
-				if e.bullet_cooldown < 0 {
-					e.bullet_cooldown = 0;
-				}
-			
-				// Process movements
-				let delta_time = self.delta_ms as f32 / 1000_f32;
-				match e.movement {
-					Movement::None => (),
-					Movement::Linear(x,y) => e.translate(x * delta_time, y * delta_time),
-					Movement::Generated(func) => {
-						let (x, y) = func(e.timer, &mut self.rng, e.seed);
-						e.translate(x * delta_time, y * delta_time);
-					},
-				}
-			}
-
-			match self.entities[i].entity_type {
-
-				// Player only code
-				// This handles the player movements
-				entity::EntityType::Player => {
-					let e = &mut self.entities[i];
-					let vel= e.vel * (self.delta_ms as f32 / 1000_f32);
-	
-					match (self.input.up, self.input.right, self.input.down, self.input.left) {
-						( true, false, false, false) => e.translate(0.0, -vel),
-						( true,  true, false, false) => e.translate(vel*0.707, -vel*0.707),
-						(false,  true, false, false) => e.translate(vel, 0.0),
-						(false,  true,  true, false) => e.translate(vel*0.707, vel*0.707),
-						(false, false,  true, false) => e.translate(0.0, vel),
-						(false, false,  true,  true) => e.translate(-vel*0.707, vel*0.707),
-						(false, false, false,  true) => e.translate(-vel, 0.0),
-						( true, false, false,  true) => e.translate(-vel*0.707, -vel*0.707),
-						_ => (),
-					}
-
-					// Limit player position to map.
-					let window_width = _ctx.conf.window_mode.width as f32;
-					let window_height = _ctx.conf.window_mode.height as f32;
-					if e.x + e.bounds.x < 0.0 {
-						e.x = 0.0 - e.bounds.x;
-					}
-					if e.x + e.bounds.x + e.bounds.w > window_width {
-						e.x = window_width - (e.bounds.x + e.bounds.w);
-					}
-					if e.y + e.bounds.y < 0.0 {
-						e.y = 0.0 - e.bounds.y;
-					}
-					if e.y + e.bounds.y + e.bounds.h > window_height {
-						e.y = window_height - (e.bounds.y + e.bounds.h);
-					}
-
-					// Hacky way of showing health
-					self.score_text = graphics::Text::new(_ctx, &format!("Score: {} || Health: {}", 
-						&self.score.to_string(), e.hp), &self.score_font).unwrap();
-					
-				},
-
-				// Enemy only code
-				entity::EntityType::Enemy => {
-					if self.entities[i].bullet_cooldown <= 0 {
-						self.entities[i].bullet_cooldown = ENEMY_BULLET_COOLDOWN;
-						let x = self.entities[i].x;
-						let y = self.entities[i].y;
-						enemy_bullet_spawner(self, x, y);
-					}
-				},
-
-				// Boss only code
-				entity::EntityType::Boss => (),
-
-				// Player bullet code
-				entity::EntityType::PlayerBullet => {
-					let player_bullet = &mut self.entities[i];
-					player_bullet.angle += self.delta_ms as f32 / 100.0;
-				},
-
-				// Enemy bullet code
-				entity::EntityType::EnemyBullet => (),
-
-				// Powerup codes
-				entity::EntityType::Powerup => (),
-			}
+			let mut e = self.entities.remove(i);
+			e.update(self.delta_ms, self, _ctx);
+			self.entities.insert(i, e);
 		}
+
+		// Hacky way of showing health
+		self.score_text = graphics::Text::new(_ctx, &format!("Score: {} || Health: {}", 
+			&self.score.to_string(), self.entities[0].hp), &self.score_font).unwrap();
 
 		if self.input.shoot {
 			if self.entities[0].bullet_cooldown == 0 {
+				// Reset cooldown.
 				self.entities[0].bullet_cooldown = PLAYER_BULLET_COOLDOWN;
-				let x = self.entities[0].x;
-				let y = self.entities[0].y;
-				player_bullet_spawner(self, x, y)?;
+				// Spawn the bullet.
+				let x = self.entities[0].x + (self.textures[&entity::EntityType::Player].width() as f32 / 2.0) - (self.textures[&entity::EntityType::PlayerBullet].width() as f32 / 2.0);
+				let y = self.entities[0].y - (self.textures[&entity::EntityType::PlayerBullet].height() as f32 / 2.0);
+				let pb = self.spawner.player_bullet_spawner(x, y);
+				self.entities.push(pb);
+				if !DISABLE_SFX {
+					self.sfx["player_shot"].play()?;
+				}
 			}
 		}
 		
 		// Handle dying entities
 		self.entities.retain(|e| {
-			let dying = match e.lifetime {
-				Lifetime::Forever => e.hp <= 0,
-				Lifetime::Milliseconds(r) => r <= 0 || e.hp <= 0,
+			let mut dying = match e.lifetime {
+				Lifetime::Forever => false,
+				Lifetime::Milliseconds(r) => r <= 0,
 			};
+			if !dying {
+				if e.hp <= 0 || e.y > _ctx.conf.window_mode.height as f32 {
+					dying = true
+				}
+			}
 			if dying {
 				match e.entity_type {
 					_ => (),

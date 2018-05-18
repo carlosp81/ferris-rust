@@ -5,6 +5,7 @@ use ggez::{Context,graphics};
 use self::rand::Rng;
 use game::entity::{Lifetime, Movement, Entity, EntityType};
 use game::DEFAULT_FONT;
+use game::BULLET_SPEED;
 use std;
 
 const ENEMY_FONT_SIZE: u32 = 18;
@@ -43,6 +44,62 @@ impl EntitySpawner {
         p.cooldowns.insert(EntityType::Powerup, POWERUP_COOLDOWN );
 
         p
+    }
+
+    // Spawns bullets for the player
+    pub fn player_bullet_spawner(&self, x: f32, y: f32) -> Entity {
+        let bullet = Entity {
+            text: self.text.clone(),
+            entity_type: EntityType::PlayerBullet,
+            x: x,
+            y: y,
+            hp: 1,
+            dam: 1,
+            vel: 10.0,
+            bounds: graphics::Rect {
+                x: 0.0,
+                y: 0.0,
+                w: 50.0,
+                h: 50.0,
+            },
+            movement: Movement::Linear(0.0, -BULLET_SPEED),
+            //movement: Movement::Linear(0.0, -10_000.0),
+            lifetime: Lifetime::Milliseconds(2_000),
+            seed: 0.0,
+            timer: 0,
+            bullet_cooldown: 0,
+            angle: 0.0,
+        };
+        bullet
+    }
+
+
+    // Spawns bullets for the enemy
+    pub fn spawn_enemy_bullet(&self, x: f32, y: f32) -> Entity {
+        let bullet = Entity {
+            text: self.text.clone(),
+            entity_type: EntityType::EnemyBullet,
+            x,
+            y,
+            hp: 1,
+            dam: 1,
+            vel: 1000.0,
+            bounds: graphics::Rect {
+                x: 0.0,
+                y: 0.0,
+                w: 25.0,
+                h: 25.0,
+            },
+            //movement: Movement::Linear(0.0, 7_000.0),
+            movement: Movement::Linear(0.0, BULLET_SPEED),
+            lifetime: Lifetime::Milliseconds(8_000),
+            seed: 0.0,
+            timer: 0,
+            bullet_cooldown: 0,
+            angle: 0.0,
+        };
+        //state.entities.push(bullet);
+        bullet
     }
 
     pub fn spawn_enemy(&mut self, ctx: &mut Context) -> Entity {
