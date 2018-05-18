@@ -50,7 +50,7 @@ pub struct MenuState {
 }
 
 impl MenuState {
-    pub fn new(ctx: &mut Context) -> GameResult<MenuState> {
+    pub fn new(_ctx: &mut Context) -> GameResult<MenuState> {
 		
         let s = MenuState {
 		};
@@ -67,10 +67,10 @@ impl event::EventHandler for MenuState {
 		Ok(())
 	}
 
-    fn key_down_event(&mut self, _ctx: &mut Context, keycode: Keycode, keymod: Mod, repeat: bool) {
+    fn key_down_event(&mut self, _ctx: &mut Context, _keycode: Keycode, _keymod: Mod, _repeat: bool) {
 	}
 	
-    fn key_up_event(&mut self, _ctx: &mut Context, keycode: Keycode, keymod: Mod, repeat: bool) {
+    fn key_up_event(&mut self, _ctx: &mut Context, _keycode: Keycode, _keymod: Mod, _repeat: bool) {
 	}
 }
 
