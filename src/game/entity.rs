@@ -24,7 +24,7 @@ use ggez::graphics;
 use ggez::Context;
 use game::MainState;
 use game::ENEMY_BULLET_COOLDOWN;
-use game::DISABLE_SFX;
+
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum EntityType {

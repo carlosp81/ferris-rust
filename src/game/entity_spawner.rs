@@ -28,7 +28,7 @@ use std;
 
 const ENEMY_FONT_SIZE: u32 = 18;
 const ENEMY_COOLDOWN: i64 = 1_000;
-const POWERUP_COOLDOWN: i64 = 5_000;
+const POWERUP_COOLDOWN: i64 = 10_000;
 const ENEMY_NAMES: [&str;4] = [
 	"NULL POINTER",
 	"DANGLING REF",
@@ -203,8 +203,8 @@ impl EntitySpawner {
         if self.cooldowns[&EntityType::Powerup] <= 0 {
             self.cooldowns.insert(EntityType::Powerup, POWERUP_COOLDOWN);
             let mut e = self.spawn_powerup();
-            e.x = self.rng.gen_range(0.0, ctx.conf.window_mode.width as f32);
-            e.y = -10.0;
+            e.x = self.rng.gen_range(0.0, ctx.conf.window_mode.width as f32 - 32.0);
+            e.y = -32.0;
             return Some(e);
         }
 
