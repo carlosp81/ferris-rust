@@ -184,30 +184,27 @@ impl EntitySpawner {
     }
 
     pub fn update(&mut self, delta_ms: u64, ctx: &mut Context) -> Option<Entity> {
-        let current_enemy_cooldown = self.cooldowns[&EntityType::Enemy];
-        let current_powerup_cooldown = self.cooldowns[&EntityType::Powerup];
+        let mut spawned: bool = false;
+        for (k, v) in self.cooldowns.iter_mut() {
+            *v = *v - delta_ms as i64;
+            if *v <= 0 {
+                spawned = true;        
+                match k {
+                    EntityType::Enemy => *v = ENEMY_COOLDOWN,
+                    EntityType::Powerup => *v = POWERUP_COOLDOWN,
+                    _ => (),
+                }                
+                break;
+            }
 
-        self.cooldowns.insert(EntityType::Enemy, current_enemy_cooldown - delta_ms as i64);
-        self.cooldowns.insert(EntityType::Powerup, current_powerup_cooldown - delta_ms as i64);
-
-        // Spawn enemies
-        if self.cooldowns[&EntityType::Enemy] <= 0 {
-            self.cooldowns.insert(EntityType::Enemy, ENEMY_COOLDOWN);
+        }
+        
+        if spawned {
             let mut e = self.spawn_enemy(ctx);
             e.x = self.rng.gen_range(0.0, ctx.conf.window_mode.width as f32);
             e.y = -45.0;
             return Some(e);
         }
-
-        // Spawn powerups
-        if self.cooldowns[&EntityType::Powerup] <= 0 {
-            self.cooldowns.insert(EntityType::Powerup, POWERUP_COOLDOWN);
-            let mut e = self.spawn_powerup();
-            e.x = self.rng.gen_range(0.0, ctx.conf.window_mode.width as f32 - 32.0);
-            e.y = -32.0;
-            return Some(e);
-        }
-
       
         None
     }
