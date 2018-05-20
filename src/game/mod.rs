@@ -42,7 +42,6 @@ const BULLET_SPEED: f32 = 400.0;
 const ENEMY_BULLET_COOLDOWN: i64 = 2_000;
 const DRAW_BOUNDING_BOXES: bool = true;
 const DISABLE_SFX: bool = false;
-const N_MENU_SELECTIONS: u32 = 1;
 
 // Adjust this to start further ahead or behind in the spawn schedule
 //const SCHEDULE_OFFSET: u64 = 0;
@@ -115,8 +114,6 @@ impl MainState {
 			textures: std::collections::HashMap::new(),
 			bgm: audio::Source::new(ctx, "/sounds/Tejaswi-Hyperbola.ogg")?,
 			rng: rand::thread_rng(),
-			//last_spawned: 0,
-			//schedule: Vec::<(u64, entity::Entity)>::new(),
 			sfx: std::collections::HashMap::new(),
 			quit: false,
 		};
@@ -163,23 +160,7 @@ impl MainState {
 		//if USE_BETA_SCHEDULER {
 			//schedule(& mut s, ctx);
 		//}
-	
-        //let resolutions = ggez::graphics::get_fullscreen_modes(ctx, 0)?;
-		
-        //let (width, height) = resolutions[3];
 
-		//ggez::graphics::set_resolution(ctx, width, height)?;
-		//graphics::set_resolution(ctx, WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32);
-		//ctx.conf.window_setup.resizable = true;
-		//ctx.conf.window_mode.width = WINDOW_WIDTH as u32;
-		//ctx.conf.window_mode.height = WINDOW_HEIGHT as u32;
-		//graphics::set_screen_coordinates(ctx, graphics::Rect {
-			//x: 0.0,
-			//y: 0.0,
-			//w: WINDOW_WIDTH / 2.0,
-			//h: WINDOW_HEIGHT,
-
-		//});
         Ok(s)
     }
 }
@@ -444,21 +425,11 @@ impl event::EventHandler for MainState {
 		graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, 0.0 + (self.elapsed_ms/40%1920) as f32), 0.0)?;
 		graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, -1920.0 + (self.elapsed_ms/40 % 1920) as f32), 0.0)?;
 
-		//let player_x = self.entities[0].x;
-		//let player_y = self.entities[0].y;
-		//println!("Player x = {}, Player y = {}", player_x / 10.0, player_y / 50.0 - 5.0);
-		
+
 		// Draw all entities
 		for e in &mut self.entities {
 			let pos = graphics::Point2::new(e.x, e.y);
 			let texture = &self.textures[&e.entity_type];
-			//let text_size_div_2 =  graphics::Point2::new(e.text.width() as f32 / 2.0, e.text.height() as f32 / 2.0);
-
-			// Draw the entity sprite axis-aligned
-			//graphics::draw(ctx, texture, pos, 0.0)?;
-			
-			// Normal drawing conditions
-			
 
 			// Special drawing conditions start
 			match e.entity_type {
