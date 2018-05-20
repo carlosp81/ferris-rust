@@ -120,9 +120,9 @@ impl EntitySpawner {
         bullet
     }
 
-    pub fn spawn_enemy(&mut self, ctx: &mut Context) -> Entity {
+    pub fn spawn_enemy(&self, ctx: &mut Context, seed: f64, name: &str) -> Entity {
         let font = graphics::Font::new(ctx, DEFAULT_FONT, ENEMY_FONT_SIZE);
-        let name = ENEMY_NAMES[self.rng.gen::<usize>() % ENEMY_NAMES.len()].clone();
+        //let name = ENEMY_NAMES[self.rng.gen::<usize>() % ENEMY_NAMES.len()].clone();
 		let text = graphics::Text::new(ctx, name, &font.unwrap()).unwrap();
 		let e = Entity {
             text: text,
@@ -147,7 +147,7 @@ impl EntitySpawner {
  				}
 			),
 			lifetime: Lifetime::Milliseconds(100_000),
-			seed: self.rng.gen_range(-1.0, 1.0),
+			seed,
 			timer: 0,
 			bullet_cooldown: 0,
 			angle: 0.0,
@@ -156,7 +156,7 @@ impl EntitySpawner {
         e
     }
 
-    pub fn spawn_powerup(&mut self) -> Entity {
+    pub fn spawn_powerup(&self) -> Entity {
 
         let e = Entity {
             text: self.text.clone(),
@@ -174,7 +174,7 @@ impl EntitySpawner {
 			},
 			movement: Movement::Linear(0.0, 50.0),
 			lifetime: Lifetime::Milliseconds(100_000),
-			seed: self.rng.gen_range(-1.0, 1.0),
+			seed: 0.0,
 			timer: 0,
 			bullet_cooldown: 0,
 			angle: 0.0,
@@ -184,28 +184,45 @@ impl EntitySpawner {
     }
 
     pub fn update(&mut self, delta_ms: u64, ctx: &mut Context) -> Option<Entity> {
-        let mut spawned: bool = false;
-        for (k, v) in self.cooldowns.iter_mut() {
-            *v = *v - delta_ms as i64;
-            if *v <= 0 {
-                spawned = true;        
-                match k {
-                    EntityType::Enemy => *v = ENEMY_COOLDOWN,
-                    EntityType::Powerup => *v = POWERUP_COOLDOWN,
-                    _ => (),
-                }                
-                break;
-            }
-
-        }
         
-        if spawned {
-            let mut e = self.spawn_enemy(ctx);
-            e.x = self.rng.gen_range(0.0, ctx.conf.window_mode.width as f32);
-            e.y = -45.0;
-            return Some(e);
+        // We dont really care about matching the player type, so we use that as a dummy.
+        let mut entity_type: EntityType = EntityType::Player;
+
+        for (k, v) in self.cooldowns.iter_mut() {
+            *v -= delta_ms as i64;
+            if *v <= 0 {
+                entity_type = k.clone();
+            }
         }
-      
+
+        match entity_type {
+            EntityType::Enemy => {
+                // Reset cooldown.
+                self.cooldowns.insert(entity_type, ENEMY_COOLDOWN);
+                
+                // Create enemy name and seed.
+                let name = ENEMY_NAMES[self.rng.gen::<usize>() % ENEMY_NAMES.len()].clone();
+                let seed: f64 = self.rng.gen_range(-1.0, 1.0);
+                
+                // Create enemy.
+                let mut entity = self.spawn_enemy(ctx, seed, name);
+                entity.x = self.rng.gen_range(0.0, ctx.conf.window_mode.width as f32);
+                entity.y = -45.0;
+                return Some(entity);
+            }
+            EntityType::Powerup => {
+                // Reset cooldown.
+                self.cooldowns.insert(entity_type, POWERUP_COOLDOWN);
+
+                // Create powerup.
+                let mut powerup = self.spawn_powerup();
+                powerup.x = self.rng.gen_range(0.0, ctx.conf.window_mode.width as f32);
+                powerup.y = -45.0;
+                return Some(powerup);
+            },
+            _ => (),
+            }                
+
         None
     }
 }

@@ -26,7 +26,7 @@ use game::MainState;
 use game::ENEMY_BULLET_COOLDOWN;
 
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum EntityType {
 	Boss,
 	EnemyBullet,
@@ -81,7 +81,7 @@ impl Entity {
 	pub fn update(&mut self, state: &mut MainState, _ctx: &mut Context) {
 		
 		let delta_ms = state.delta_ms;
-		
+
 		// Update lifetimes
 		self.timer += delta_ms;
 		self.lifetime = match self.lifetime {
