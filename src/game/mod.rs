@@ -41,7 +41,7 @@ const PLAYER_BULLET_COOLDOWN: i64 = 250;
 const BULLET_SPEED: f32 = 400.0;
 const ENEMY_BULLET_COOLDOWN: i64 = 2_000;
 const DRAW_BOUNDING_BOXES: bool = true;
-const DISABLE_SFX: bool = false;
+const DISABLE_SFX: bool = true;
 
 // Adjust this to start further ahead or behind in the spawn schedule
 //const SCHEDULE_OFFSET: u64 = 0;
@@ -61,6 +61,12 @@ struct Input {
     up: bool,
     down: bool,
 	shoot: bool,
+}
+
+// Menu states
+pub enum MenuState {
+	Menu,
+	Game
 }
 
 // First we make a structure to contain the game's state
@@ -83,6 +89,7 @@ pub struct MainState {
 	//schedule: Vec<(u64, entity::Entity)>,
 	sfx: std::collections::HashMap<&'static str, audio::Source>,
 	quit: bool,
+	game_state: MenuState,
 }
 
 impl MainState {
@@ -116,6 +123,7 @@ impl MainState {
 			rng: rand::thread_rng(),
 			sfx: std::collections::HashMap::new(),
 			quit: false,
+			game_state: MenuState::Menu,
 		};
 		
 		// Set up textures
@@ -345,71 +353,83 @@ impl event::EventHandler for MainState {
         if self.quit {
 			_ctx.quit()?;
 		}
+
+		match self.game_state {
+			MenuState::Menu => {
+				if(self.input.shoot) {
+					self.game_state = MenuState::Game;
+				}
+				self.score_text = graphics::Text::new(_ctx, &format!("Main Menu: Press Space to play game"), &self.score_font).unwrap();
+			},
+			MenuState::Game => {
+				
+				//if USE_BETA_SCHEDULER {
+					//scheduler(self, _ctx);
+				//} else {
+					//enemy_spawner(self, _ctx);
+				//}
+				collision_detection(self);
+				
+				
+				match self.spawner.update(self.delta_ms, _ctx) {
+					Some(e) => {
+						self.entities.push(e);
+					},
+					None => (),
+				}
+
+				//self.score_tex.f //graphics::Text::new(_ctx, &format!("Score: {}", self.score), _ctx.default_font)?;
+
+				self.score_text = graphics::Text::new(_ctx, &format!("Score: {}", &self.score.to_string()), &self.score_font).unwrap();
+			
+				// Run thru the list of entities
+				for i in 0..self.entities.len() {
+					let mut e = self.entities.remove(i);
+					e.update(self, _ctx);
+					self.entities.insert(i, e);
+				}
+
+				// Hacky way of showing health
+				self.score_text = graphics::Text::new(_ctx, &format!("Score: {} || Health: {}", 
+					&self.score.to_string(), self.entities[0].hp), &self.score_font).unwrap();
+
+				if self.input.shoot {
+					if self.entities[0].bullet_cooldown == 0 {
+						// Reset cooldown.
+						self.entities[0].bullet_cooldown = PLAYER_BULLET_COOLDOWN;
+						// Spawn the bullet.
+						let x = self.entities[0].x + (self.textures[&entity::EntityType::Player].width() as f32 / 2.0) - (self.textures[&entity::EntityType::PlayerBullet].width() as f32 / 2.0);
+						let y = self.entities[0].y - (self.textures[&entity::EntityType::PlayerBullet].height() as f32 / 2.0);
+						let pb = self.spawner.player_bullet_spawner(x, y);
+						self.entities.push(pb);
+						if !DISABLE_SFX {
+							self.sfx["player_shot"].play()?;
+						}
+					}
+				}
+				
+				// Handle dying entities
+				self.entities.retain(|e| {
+					let mut dying = match e.lifetime {
+						Lifetime::Forever => false,
+						Lifetime::Milliseconds(r) => r <= 0,
+					};
+					if !dying {
+						if e.hp <= 0 || e.y > _ctx.conf.window_mode.height as f32 {
+							dying = true
+						}
+					}
+					if dying {
+						match e.entity_type {
+							_ => (),
+						}
+					}
+					!dying
+				});
+			}
+		}
 		update_time(self);
 
-		//if USE_BETA_SCHEDULER {
-			//scheduler(self, _ctx);
-		//} else {
-			//enemy_spawner(self, _ctx);
-		//}
-		collision_detection(self);
-		
-		
-		match self.spawner.update(self.delta_ms, _ctx) {
-			Some(e) => {
-				self.entities.push(e);
-			},
-			None => (),
-		}
-
-        //self.score_tex.f //graphics::Text::new(_ctx, &format!("Score: {}", self.score), _ctx.default_font)?;
-
-        self.score_text = graphics::Text::new(_ctx, &format!("Score: {}", &self.score.to_string()), &self.score_font).unwrap();
-	
-		// Run thru the list of entities
-		for i in 0..self.entities.len() {
-			let mut e = self.entities.remove(i);
-			e.update(self, _ctx);
-			self.entities.insert(i, e);
-		}
-
-		// Hacky way of showing health
-		self.score_text = graphics::Text::new(_ctx, &format!("Score: {} || Health: {}", 
-			&self.score.to_string(), self.entities[0].hp), &self.score_font).unwrap();
-
-		if self.input.shoot {
-			if self.entities[0].bullet_cooldown == 0 {
-				// Reset cooldown.
-				self.entities[0].bullet_cooldown = PLAYER_BULLET_COOLDOWN;
-				// Spawn the bullet.
-				let x = self.entities[0].x + (self.textures[&entity::EntityType::Player].width() as f32 / 2.0) - (self.textures[&entity::EntityType::PlayerBullet].width() as f32 / 2.0);
-				let y = self.entities[0].y - (self.textures[&entity::EntityType::PlayerBullet].height() as f32 / 2.0);
-				let pb = self.spawner.player_bullet_spawner(x, y);
-				self.entities.push(pb);
-				if !DISABLE_SFX {
-					self.sfx["player_shot"].play()?;
-				}
-			}
-		}
-		
-		// Handle dying entities
-		self.entities.retain(|e| {
-			let mut dying = match e.lifetime {
-				Lifetime::Forever => false,
-				Lifetime::Milliseconds(r) => r <= 0,
-			};
-			if !dying {
-				if e.hp <= 0 || e.y > _ctx.conf.window_mode.height as f32 {
-					dying = true
-				}
-			}
-			if dying {
-				match e.entity_type {
-					_ => (),
-				}
-			}
-			!dying
-		});
 		
 
         Ok(())
@@ -417,89 +437,105 @@ impl event::EventHandler for MainState {
     fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
         graphics::clear(ctx);
 
-        // Drawables are drawn from their top-left corner.
-        let dest_point = graphics::Point2::new(10.0, 10.0);
-        graphics::draw(ctx, &self.score_text, dest_point, 0.0)?;
-		
-		// Draw the 2 background copies staggered according to elapsed_ms
-		graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, 0.0 + (self.elapsed_ms/40%1920) as f32), 0.0)?;
-		graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, -1920.0 + (self.elapsed_ms/40 % 1920) as f32), 0.0)?;
+		match self.game_state {
+			MenuState::Menu => {
+				// Drawables are drawn from their top-left corner.
+				let dest_point = graphics::Point2::new(200.0, 200.0);
+				graphics::draw(ctx, &self.score_text, dest_point, 0.0)?;
+				
+				// Draw the 2 background copies staggered according to elapsed_ms
+				graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, 0.0 + (self.elapsed_ms/40%1920) as f32), 0.0)?;
+				graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, -1920.0 + (self.elapsed_ms/40 % 1920) as f32), 0.0)?;
+
+			},
+			MenuState::Game => {
+				// Drawables are drawn from their top-left corner.
+				let dest_point = graphics::Point2::new(10.0, 10.0);
+				graphics::draw(ctx, &self.score_text, dest_point, 0.0)?;
+				
+				// Draw the 2 background copies staggered according to elapsed_ms
+				graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, 0.0 + (self.elapsed_ms/40%1920) as f32), 0.0)?;
+				graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, -1920.0 + (self.elapsed_ms/40 % 1920) as f32), 0.0)?;
 
 
-		// Draw all entities
-		for e in &mut self.entities {
-			let pos = graphics::Point2::new(e.x, e.y);
-			let texture = &self.textures[&e.entity_type];
+				// Draw all entities
+				for e in &mut self.entities {
+					let pos = graphics::Point2::new(e.x, e.y);
+					let texture = &self.textures[&e.entity_type];
 
-			// Special drawing conditions start
-			match e.entity_type {
-				entity::EntityType::Enemy => {
-					match e.hp {
-						1 => graphics::set_color(ctx, graphics::Color::new(1.0, 0.1, 0.0, 1.0))?,
-						2 => graphics::set_color(ctx, graphics::Color::new(0.9, 0.5, 0.0, 1.0))?,
-						3 => graphics::set_color(ctx, graphics::Color::new(0.0, 1.0, 0.0, 1.0))?,
-						_ => (),
+					// Special drawing conditions start
+					match e.entity_type {
+						entity::EntityType::Enemy => {
+							match e.hp {
+								1 => graphics::set_color(ctx, graphics::Color::new(1.0, 0.1, 0.0, 1.0))?,
+								2 => graphics::set_color(ctx, graphics::Color::new(0.9, 0.5, 0.0, 1.0))?,
+								3 => graphics::set_color(ctx, graphics::Color::new(0.0, 1.0, 0.0, 1.0))?,
+								_ => (),
+							}
+						},
+						entity::EntityType::Player => {
+							match e.hp {
+								1 => graphics::set_color(ctx, graphics::Color::new(0.4, 0.0, 0.0, 0.9))?,
+								2 => graphics::set_color(ctx, graphics::Color::new(0.6, 0.1, 0.1, 0.95))?,
+								3 => graphics::set_color(ctx, graphics::Color::new(1.0, 0.7, 0.7, 1.0))?,
+								4 => graphics::set_color(ctx, graphics::Color::new(1.0, 0.9, 0.9, 1.0))?,						
+								_ => graphics::set_color(ctx, graphics::Color::new(1.0, 1.0, 1.0, 1.0))?,
+							}
+						},
+						_ => {}
 					}
-				},
-				entity::EntityType::Player => {
-					match e.hp {
-						1 => graphics::set_color(ctx, graphics::Color::new(0.4, 0.0, 0.0, 0.9))?,
-						2 => graphics::set_color(ctx, graphics::Color::new(0.6, 0.1, 0.1, 0.95))?,
-						3 => graphics::set_color(ctx, graphics::Color::new(1.0, 0.7, 0.7, 1.0))?,
-						4 => graphics::set_color(ctx, graphics::Color::new(1.0, 0.9, 0.9, 1.0))?,						
-						_ => graphics::set_color(ctx, graphics::Color::new(1.0, 1.0, 1.0, 1.0))?,
+					
+					// Draw the entity sprite rotated if needed
+					if e.angle == 0.0 {
+						graphics::draw(ctx, texture, pos, e.angle)?;
+					}  
+					else {
+						let half_width = texture.width() as f64 / 2.0;
+						let angle = e.angle as f64 + (5.0 * std::f64::consts::PI / 4.0);
+						let x = (half_width + half_width * (2.0_f64).sqrt() * angle.cos()) as f32;
+						let y = (half_width + half_width * (2.0_f64).sqrt() * angle.sin()) as f32;
+						graphics::draw(ctx, texture, graphics::Point2::new(e.x + x, e.y+ y), e.angle)?;
 					}
-				},
-				_ => {}
-			}
-			
-			// Draw the entity sprite rotated if needed
-			if e.angle == 0.0 {
-				graphics::draw(ctx, texture, pos, e.angle)?;
-			}  
-			else {
-				let half_width = texture.width() as f64 / 2.0;
-				let angle = e.angle as f64 + (5.0 * std::f64::consts::PI / 4.0);
-				let x = (half_width + half_width * (2.0_f64).sqrt() * angle.cos()) as f32;
-				let y = (half_width + half_width * (2.0_f64).sqrt() * angle.sin()) as f32;
-				graphics::draw(ctx, texture, graphics::Point2::new(e.x + x, e.y+ y), e.angle)?;
-			}
-		
-			// End drawing conditions: Reset drawing conditions
-			graphics::set_color(ctx, graphics::Color::new(1.0, 1.0, 1.0, 1.0))?;
-			
-			// If this is an enemy, include a name tag.
-			if e.entity_type == entity::EntityType::Enemy {
-				let offset = 30.0;
-				let text_pos = graphics::Point2::new(
-					e.x + texture.width() as f32 + offset, 
-					e.y - offset);
-				//	, e.y);
-				graphics::draw(ctx, &e.text, text_pos, 0.0)?;
-				graphics::line(ctx, &[
-					graphics::Point2::new(text_pos.x - 5.0, text_pos.y + e.text.height() as f32),
-					graphics::Point2::new(pos.x + texture.width() as f32, pos.y)], 1.0)?;
-			}
-			
-			// Draw collision boxes if they are enabled.
-			if DRAW_BOUNDING_BOXES {
-			graphics::rectangle(ctx,
-				graphics::DrawMode::Line(1.0),
-				graphics::Rect {
-					x: e.x + e.bounds.x,
-					y: e.y + e.bounds.y,
-					w: e.bounds.w,
-					h: e.bounds.h}
-				)?;
-			}
+				
+					// End drawing conditions: Reset drawing conditions
+					graphics::set_color(ctx, graphics::Color::new(1.0, 1.0, 1.0, 1.0))?;
+					
+					// If this is an enemy, include a name tag.
+					if e.entity_type == entity::EntityType::Enemy {
+						let offset = 30.0;
+						let text_pos = graphics::Point2::new(
+							e.x + texture.width() as f32 + offset, 
+							e.y - offset);
+						//	, e.y);
+						graphics::draw(ctx, &e.text, text_pos, 0.0)?;
+						graphics::line(ctx, &[
+							graphics::Point2::new(text_pos.x - 5.0, text_pos.y + e.text.height() as f32),
+							graphics::Point2::new(pos.x + texture.width() as f32, pos.y)], 1.0)?;
+					}
+					
+					// Draw collision boxes if they are enabled.
+					if DRAW_BOUNDING_BOXES {
+					graphics::rectangle(ctx,
+						graphics::DrawMode::Line(1.0),
+						graphics::Rect {
+							x: e.x + e.bounds.x,
+							y: e.y + e.bounds.y,
+							w: e.bounds.w,
+							h: e.bounds.h}
+						)?;
+					}
+				}
+			},
 		}
-        graphics::draw(ctx, &self.score_text, graphics::Point2::new(0.0, 0.0), 0.0)?;
-        graphics::present(ctx);
 
-        self.frames += 1;
-        if (self.frames % 100) == 0 {
-            println!("FPS: {}", ggez::timer::get_fps(ctx));
-        }
+		graphics::draw(ctx, &self.score_text, graphics::Point2::new(0.0, 0.0), 0.0)?;
+		graphics::present(ctx);
+
+		self.frames += 1;
+		if (self.frames % 100) == 0 {
+			println!("FPS: {}", ggez::timer::get_fps(ctx));
+		}
+        
 
         Ok(())
     }
