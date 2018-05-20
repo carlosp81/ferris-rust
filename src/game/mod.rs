@@ -388,7 +388,7 @@ impl event::EventHandler for MainState {
 		// Run thru the list of entities
 		for i in 0..self.entities.len() {
 			let mut e = self.entities.remove(i);
-			e.update(self.delta_ms, self, _ctx);
+			e.update(self, _ctx);
 			self.entities.insert(i, e);
 		}
 

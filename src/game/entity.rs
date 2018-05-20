@@ -78,8 +78,9 @@ impl Entity {
         self.y += dy;
     }
 
-	pub fn update(&mut self, delta_ms: u64, state: &mut MainState, _ctx: &mut Context) {
+	pub fn update(&mut self, state: &mut MainState, _ctx: &mut Context) {
 		
+		let delta_ms = state.delta_ms;
 		
 		// Update lifetimes
 		self.timer += delta_ms;
