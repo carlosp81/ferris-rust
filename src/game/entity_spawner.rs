@@ -37,8 +37,6 @@ const ENEMY_NAMES: [&str;4] = [
 ];
 
 pub struct EntitySpawner {
-    //pub max_cooldown: i64,
-    //pub current_cooldown: i64,
     pub text: graphics::Text,
     pub rng: rand::ThreadRng,
     pub cooldowns: std::collections::HashMap<EntityType, i64>,
@@ -51,8 +49,6 @@ impl EntitySpawner {
         let text = graphics::Text::new(ctx, "", &font.unwrap()).unwrap();
 
         let mut p = EntitySpawner {
-            //max_cooldown: cooldown,
-            //current_cooldown: cooldown,
             text,
             rng: rand::thread_rng(),
             cooldowns: std::collections::HashMap::new(),
@@ -81,7 +77,6 @@ impl EntitySpawner {
                 h: 50.0,
             },
             movement: Movement::Linear(0.0, -BULLET_SPEED),
-            //movement: Movement::Linear(0.0, -10_000.0),
             lifetime: Lifetime::Milliseconds(2_000),
             seed: 0.0,
             timer: 0,
@@ -122,7 +117,6 @@ impl EntitySpawner {
 
     pub fn spawn_enemy(&self, ctx: &mut Context, seed: f64, name: &str) -> Entity {
         let font = graphics::Font::new(ctx, DEFAULT_FONT, ENEMY_FONT_SIZE);
-        //let name = ENEMY_NAMES[self.rng.gen::<usize>() % ENEMY_NAMES.len()].clone();
 		let text = graphics::Text::new(ctx, name, &font.unwrap()).unwrap();
 		let e = Entity {
             text: text,
@@ -183,6 +177,8 @@ impl EntitySpawner {
         e
     }
 
+    // Update the cooldowns on all entity types that have them. If a cooldown triggers, 
+    // spawn that entity and return it.
     pub fn update(&mut self, delta_ms: u64, ctx: &mut Context) -> Option<Entity> {
         
         // We dont really care about matching the player type, so we use that as a dummy.
@@ -221,7 +217,7 @@ impl EntitySpawner {
                 return Some(powerup);
             },
             _ => (),
-            }                
+        }                
 
         None
     }
