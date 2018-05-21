@@ -66,7 +66,7 @@ struct Input {
 // Menu states
 pub enum MenuState {
 	Menu,
-	Game
+	Game,
 }
 
 // First we make a structure to contain the game's state
@@ -78,6 +78,7 @@ pub struct MainState {
 	input: Input,
     score: u32,
     score_font: graphics::Font,
+	high_scores: Vec<u32>,
     background: graphics::Image,
 	start_time: std::time::SystemTime,
 	elapsed_ms: u64,
@@ -115,6 +116,7 @@ impl MainState {
 			},
             score: 0,
             score_font,
+			high_scores: Vec::new(),
             background: graphics::Image::new(ctx, "/texture/background_tiled.png").unwrap(),
 			elapsed_ms: 0,	//Elapsed time since state creation, in milliseconds
 			delta_ms: 0,	//Elapsed time since last frame, in milliseconds
@@ -374,7 +376,7 @@ impl event::EventHandler for MainState {
 					self.game_state = MenuState::Game;
 					newgame(self, _ctx);
 				}
-				self.score_text = graphics::Text::new(_ctx, &format!("Main Menu: Press Space to play game"), &self.score_font).unwrap();
+				
 			},
 			MenuState::Game => {
 				
@@ -394,9 +396,11 @@ impl event::EventHandler for MainState {
 						break;
 					}
 				}
-
+				
+				// If the player died, gameover!
 				if !found_player {
 					self.game_state = MenuState::Menu;
+					self.high_scores.push(self.score);
 				}
 
 				match self.spawner.update(self.delta_ms, _ctx) {
@@ -471,7 +475,16 @@ impl event::EventHandler for MainState {
 				graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, 0.0 + (self.elapsed_ms/40%1920) as f32), 0.0)?;
 				graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, -1920.0 + (self.elapsed_ms/40 % 1920) as f32), 0.0)?;
 
+				self.score_text = graphics::Text::new(ctx, &format!("Main Menu: Press Space to play game"), &self.score_font).unwrap();
 				graphics::draw(ctx, &self.score_text, graphics::Point2::new(200.0, 200.0), 0.0)?;
+
+				self.score_text = graphics::Text::new(ctx, &format!("Recent Scores:"), &self.score_font).unwrap();
+				graphics::draw(ctx, &self.score_text, graphics::Point2::new(200.0, 250.0), 0.0)?;
+
+				for i in 0 .. self.high_scores.len() {
+					self.score_text = graphics::Text::new(ctx, &format!("Score: {}", self.high_scores[i]), &self.score_font).unwrap();
+					graphics::draw(ctx, &self.score_text, graphics::Point2::new(200.0, 280.0 + (i as f32) * 30_f32), 0.0)?;
+				}
 
 			},
 			MenuState::Game => {
