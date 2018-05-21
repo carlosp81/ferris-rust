@@ -93,6 +93,7 @@ pub struct MainState {
 }
 
 impl MainState {
+
     pub fn new(ctx: &mut Context) -> GameResult<MainState> {
         // The ttf file will be in your resources directory. Later, we
         // will mount that directory so we can omit it in the path here.
@@ -136,13 +137,36 @@ impl MainState {
 		// Set up sound effects
 		s.sfx.insert("player_shot", audio::Source::new(ctx, "/sounds/player_shot.wav")?);
 		
-		let player_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", DEFAULT_FONT_SIZE)?;
 
+		if !DISABLE_SFX {
+			s.bgm.play()?;
+		}
+		
+		//if USE_BETA_SCHEDULER {
+			//schedule(& mut s, ctx);
+		//}
+
+        Ok(s)
+    }
+}
+
+	
+	// Call this to start a new game
+	pub fn newgame(state: &mut MainState, ctx: &mut Context) {
+		
+		// Clear out old entities
+		state.entities.clear();
+
+		// Reset the score
+		state.score = 0;
+
+		// Create a new player object
+		let player_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", DEFAULT_FONT_SIZE);
 		let player = entity::Entity {
-			text: graphics::Text::new(ctx, "", &player_font)?,
+			text: graphics::Text::new(ctx, "", &player_font.unwrap()).unwrap(),
             entity_type: entity::EntityType::Player,
-		    x: (ctx.conf.window_mode.width as f32 / 2.0) - (s.textures[&entity::EntityType::Player].width() as f32 / 2.0),
-            y: ctx.conf.window_mode.height as f32 - s.textures[&entity::EntityType::Player].height() as f32,
+		    x: (ctx.conf.window_mode.width as f32 / 2.0) - (state.textures[&entity::EntityType::Player].width() as f32 / 2.0),
+            y: ctx.conf.window_mode.height as f32 - state.textures[&entity::EntityType::Player].height() as f32,
             hp: 5,
 			dam: 0,
             vel: 375.0,
@@ -160,19 +184,9 @@ impl MainState {
 			angle: 0.0,
         };
 		
-		s.entities.push(player);
-		if !DISABLE_SFX {
-			s.bgm.play()?;
-		}
-		
-		//if USE_BETA_SCHEDULER {
-			//schedule(& mut s, ctx);
-		//}
+		state.entities.push(player);
 
-        Ok(s)
-    }
-}
-
+	}
 /*
 // Setup the schedule
 fn schedule(state: &mut MainState, ctx: &mut Context) {
@@ -358,6 +372,7 @@ impl event::EventHandler for MainState {
 			MenuState::Menu => {
 				if(self.input.shoot) {
 					self.game_state = MenuState::Game;
+					newgame(self, _ctx);
 				}
 				self.score_text = graphics::Text::new(_ctx, &format!("Main Menu: Press Space to play game"), &self.score_font).unwrap();
 			},
@@ -370,7 +385,20 @@ impl event::EventHandler for MainState {
 				//}
 				collision_detection(self);
 				
+				// Really crappy way to detect game over. Fix later.
+				let mut found_player = false;
 				
+				for all_idx in 0..self.entities.len() {
+					if(self.entities[all_idx].entity_type == EntityType::Player) {
+						found_player = true;
+						break;
+					}
+				}
+
+				if !found_player {
+					self.game_state = MenuState::Menu;
+				}
+
 				match self.spawner.update(self.delta_ms, _ctx) {
 					Some(e) => {
 						self.entities.push(e);
