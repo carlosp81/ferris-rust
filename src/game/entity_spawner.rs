@@ -60,6 +60,31 @@ impl EntitySpawner {
         p
     }
 
+    pub fn spawn_splat(&self, x: f32, y: f32) -> Entity {
+        let splat = Entity {
+            text: self.text.clone(),
+            entity_type: EntityType::Splat,
+            x: x,
+            y: y,
+            hp: 1,
+            dam: 0,
+            vel: 0.0,
+            bounds: graphics::Rect {
+                x: 0.0,
+                y: 0.0,
+                w: 80.0,
+                h: 80.0,
+            },
+            movement: Movement::None,
+            lifetime: Lifetime::Milliseconds(2_000),
+            seed: 0.0,
+            timer: 0,
+            bullet_cooldown: 0,
+            angle: 0.0,
+        };
+        splat
+    }
+
     // Spawns bullets for the player
     pub fn player_bullet_spawner(&self, x: f32, y: f32) -> Entity {
         let bullet = Entity {

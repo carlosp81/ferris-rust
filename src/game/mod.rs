@@ -46,7 +46,7 @@ const DISABLE_SFX: bool = true;
 // Adjust this to start further ahead or behind in the spawn schedule
 //const SCHEDULE_OFFSET: u64 = 0;
 //const USE_BETA_SCHEDULER: bool = false;
-const SHOW_INPUT_DEBUG: bool = false;
+const SHOW_INPUT_DEBUG: bool = true;
 
 //const WINDOW_WIDTH: f32 = 1024.0;
 //const WINDOW_HEIGHT: f32 = 1024.0;
@@ -135,6 +135,7 @@ impl MainState {
 		s.textures.insert(entity::EntityType::PlayerBullet, graphics::Image::new(ctx, "/texture/player_bullet.png").unwrap() );
 		s.textures.insert(entity::EntityType::EnemyBullet, graphics::Image::new(ctx, "/texture/enemy_bullet.png").unwrap() );
 		s.textures.insert(entity::EntityType::Powerup, graphics::Image::new(ctx, "/texture/powerup.png").unwrap() );
+		s.textures.insert(entity::EntityType::Splat, graphics::Image::new(ctx, "/texture/splat.png").unwrap() );
 		
 		// Set up sound effects
 		s.sfx.insert("player_shot", audio::Source::new(ctx, "/sounds/player_shot.wav")?);
@@ -372,7 +373,7 @@ impl event::EventHandler for MainState {
 
 		match self.game_state {
 			MenuState::Menu => {
-				if(self.input.shoot) {
+				if self.input.shoot {
 					self.game_state = MenuState::Game;
 					newgame(self, _ctx);
 				}
@@ -391,7 +392,7 @@ impl event::EventHandler for MainState {
 				let mut found_player = false;
 				
 				for all_idx in 0..self.entities.len() {
-					if(self.entities[all_idx].entity_type == EntityType::Player) {
+					if self.entities[all_idx].entity_type == EntityType::Player {
 						found_player = true;
 						break;
 					}
@@ -440,24 +441,47 @@ impl event::EventHandler for MainState {
 					}
 				}
 				
-				// Handle dying entities
-				self.entities.retain(|e| {
+				let mut dying_entities: Vec<usize> = vec![];
+
+				// Grab the dying entities.
+				for all_idx in 0..self.entities.len() {
+					let e = &mut self.entities[all_idx];
+
 					let mut dying = match e.lifetime {
 						Lifetime::Forever => false,
 						Lifetime::Milliseconds(r) => r <= 0,
 					};
+					
 					if !dying {
 						if e.hp <= 0 || e.y > _ctx.conf.window_mode.height as f32 {
-							dying = true
+							dying = true;
 						}
 					}
+
 					if dying {
-						match e.entity_type {
-							_ => (),
-						}
+						// 100% guarentee we can kill off the target by hp alone.
+						e.hp = 0;
+						dying_entities.push(all_idx);
 					}
-					!dying
+				
+				}
+
+				// Spawn some on_death effects.
+				for i in 0..dying_entities.len() {
+					let x = self.entities[dying_entities[i]].x;
+					let y = self.entities[dying_entities[i]].y;
+					match self.entities[dying_entities[i]].entity_type {
+						entity::EntityType::Enemy => self.entities.push(self.spawner.spawn_splat(x, y)),
+						_ => (), 
+					}
+					
+				}
+
+				// Now we can just kill off stuff if it doesnt have hp.
+				self.entities.retain(|e| {
+					e.hp > 0
 				});
+		
 			}
 		}
 		update_time(self);
