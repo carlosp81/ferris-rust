@@ -91,6 +91,8 @@ pub struct MainState {
 	sfx: std::collections::HashMap<&'static str, audio::Source>,
 	quit: bool,
 	game_state: MenuState,
+	life_texture: graphics::Image,
+
 }
 
 impl MainState {
@@ -127,6 +129,7 @@ impl MainState {
 			sfx: std::collections::HashMap::new(),
 			quit: false,
 			game_state: MenuState::Menu,
+			life_texture: graphics::Image::new(ctx, "/texture/cpu.png").unwrap(), 
 		};
 		
 		// Set up textures
@@ -423,8 +426,8 @@ impl event::EventHandler for MainState {
 				}
 
 				// Hacky way of showing health
-				self.score_text = graphics::Text::new(_ctx, &format!("Score: {} || Health: {}", 
-					&self.score.to_string(), self.entities[0].hp), &self.score_font).unwrap();
+				self.score_text = graphics::Text::new(_ctx, &format!("Score: {}", 
+					&self.score.to_string()), &self.score_font).unwrap();
 
 				if self.input.shoot {
 					if self.entities[0].bullet_cooldown == 0 {
@@ -510,14 +513,26 @@ impl event::EventHandler for MainState {
 					graphics::draw(ctx, &self.score_text, graphics::Point2::new(200.0, 280.0 + (i as f32) * 30_f32), 0.0)?;
 				}
 
+
 			},
 			MenuState::Game => {
-				
+				let _window_width = ctx.conf.window_mode.width;
+				let _window_height = ctx.conf.window_mode.height;
+
 				// Draw the 2 background copies staggered according to elapsed_ms
 				graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, 0.0 + (self.elapsed_ms/40%1920) as f32), 0.0)?;
 				graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, -1920.0 + (self.elapsed_ms/40 % 1920) as f32), 0.0)?;
+				{
+					// Draw the player's life graphics
+					let player = &self.entities[0];
 
-
+					for i in 0..player.hp + 1 {
+						graphics::draw(
+							ctx, 
+							&self.life_texture, 
+							graphics::Point2::new(_window_width as f32 - (self.life_texture.width() as f32 * 1.25 * i as f32), 0.0), 0.0)?;
+					}
+				}
 				// Draw all entities
 				for e in &mut self.entities {
 					let pos = graphics::Point2::new(e.x, e.y);
@@ -573,6 +588,8 @@ impl event::EventHandler for MainState {
 							graphics::Point2::new(pos.x + texture.width() as f32, pos.y)], 1.0)?;
 					}
 					
+					
+
 					// Draw collision boxes if they are enabled.
 					if DRAW_BOUNDING_BOXES {
 					graphics::rectangle(ctx,
