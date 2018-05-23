@@ -348,7 +348,7 @@ impl event::EventHandler for MainState {
 					self.entities.insert(i, e);
 				}
 
-				// Hacky way of showing health
+				// Set the score variable
 				self.score_text = graphics::Text::new(_ctx, &format!("Score: {}", 
 					&self.score.to_string()), &self.score_font).unwrap();
 
@@ -480,6 +480,13 @@ impl event::EventHandler for MainState {
 								_ => graphics::set_color(ctx, graphics::Color::new(1.0, 1.0, 1.0, 1.0))?,
 							}
 						},
+						entity::EntityType::Splat => {
+							let mut alpha : f32 = match e.lifetime {
+								Lifetime::Forever => 1.0_f32,
+								Lifetime::Milliseconds(r) => r as f32 / 2_000_f32,
+							};
+							graphics::set_color(ctx, graphics::Color::new(alpha, alpha, alpha, alpha))?;
+						}
 						_ => {}
 					}
 					
