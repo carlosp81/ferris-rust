@@ -43,9 +43,6 @@ const ENEMY_BULLET_COOLDOWN: i64 = 2_000;
 const DRAW_BOUNDING_BOXES: bool = true;
 const DISABLE_SFX: bool = true;
 
-// Adjust this to start further ahead or behind in the spawn schedule
-//const SCHEDULE_OFFSET: u64 = 0;
-//const USE_BETA_SCHEDULER: bool = false;
 const SHOW_INPUT_DEBUG: bool = true;
 
 //const WINDOW_WIDTH: f32 = 1024.0;
@@ -86,8 +83,6 @@ pub struct MainState {
 	textures: std::collections::HashMap<entity::EntityType, graphics::Image>,
 	bgm: audio::Source,
 	rng: rand::ThreadRng,
-	//last_spawned: u64,
-	//schedule: Vec<(u64, entity::Entity)>,
 	sfx: std::collections::HashMap<&'static str, audio::Source>,
 	quit: bool,
 	game_state: MenuState,
@@ -147,11 +142,6 @@ impl MainState {
 		if !DISABLE_SFX {
 			s.bgm.play()?;
 		}
-		
-		//if USE_BETA_SCHEDULER {
-			//schedule(& mut s, ctx);
-		//}
-
         Ok(s)
     }
 }
@@ -193,62 +183,6 @@ impl MainState {
 		state.entities.push(player);
 
 	}
-/*
-// Setup the schedule
-fn schedule(state: &mut MainState, ctx: &mut Context) {
-
-	// Release a boss later?
-
-	// Release a 10 enemies enemy on 12000 ms
- 	for i in (1..10).rev() {
-		//let enemy_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 14);
-		//state.schedule.push((12000 + ((i as u64) * 100_u64), gen_basic_enemy(100_f32 + (i as f32) * 100_f32 , -50_f32, 
-		//	graphics::Text::new(ctx, name, &enemy_font.unwrap()).unwrap(), state.rng.gen_range(-1.0, 1.0))));
-	}
-
-	// Release like 5 enemies enemy on 5000 ms
-	for i in (1..5).rev() {
-		//let enemy_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 14);
-		//let name = ENEMY_NAMES[state.rng.gen::<usize>() % ENEMY_NAMES.len()].clone();
-		//state.schedule.push((5000 + ((i as u64) * 100_u64), gen_basic_enemy(200_f32 + (i as f32) * 80_f32 , -50_f32, 
-		//	graphics::Text::new(ctx, name, &enemy_font.unwrap()).unwrap(), state.rng.gen_range(-1.0, 1.0))));
-	}
-
-
-	// Release an enemy on 1000
-	{
-		//let enemy_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 14);
-		//let name = ENEMY_NAMES[state.rng.gen::<usize>() % ENEMY_NAMES.len()].clone();
-		//state.schedule.push((1000, gen_basic_enemy(300_f32, -50_f32, 
-		//	graphics::Text::new(ctx, name, &enemy_font.unwrap()).unwrap(), state.rng.gen_range(-1.0, 1.0))));
-	}
-
-	
-}
-*/
-/*
-fn scheduler(state: &mut MainState, ctx: &mut Context) {
-	let mut cont : bool = true;
-
-	while cont {
-		
-		cont = false;
-		if let Some(entry) = state.schedule.last() {
-			if entry.0 < state.elapsed_ms + SCHEDULE_OFFSET {
-				cont = true;
-			}
-		}
-
-		if cont {
-			let (indx, ent) = state.schedule.pop().unwrap();
-			println!("Releasing new enemy on schedule time: {:?}. It is time: {:?}", indx, state.elapsed_ms);
-			state.entities.push(ent);
-			cont = false;
-		}
-	}
-	
-}
-*/
 
 // Collision detection
 fn collision_detection(state: &mut MainState) {
@@ -264,18 +198,12 @@ fn collision_detection(state: &mut MainState) {
 							if colliding(state, entity_idx, threat_idx) {
 								state.entities[entity_idx].hp -= state.entities[threat_idx].dam;
 								state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
-								//if state.entities[entity_idx].hp <= 0 {
-									//state.entities[entity_idx].lifetime = Lifetime::Milliseconds(0);
-								//}
 							}
 						},
 						EntityType::EnemyBullet => {
 							if colliding(state, entity_idx, threat_idx) {
 								state.entities[entity_idx].hp -= state.entities[threat_idx].dam;
 								state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
-								//if state.entities[entity_idx].hp <= 0 {
-									//state.entities[entity_idx].lifetime = Lifetime::Milliseconds(0);
-								//}
 							}
 						},
 						EntityType::Powerup => {
@@ -384,11 +312,6 @@ impl event::EventHandler for MainState {
 			},
 			MenuState::Game => {
 				
-				//if USE_BETA_SCHEDULER {
-					//scheduler(self, _ctx);
-				//} else {
-					//enemy_spawner(self, _ctx);
-				//}
 				collision_detection(self);
 				
 				// Really crappy way to detect game over. Fix later.
