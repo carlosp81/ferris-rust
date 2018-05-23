@@ -211,7 +211,7 @@ fn collision_detection(state: &mut MainState) {
 							if colliding(state, entity_idx, threat_idx) {
 								// Right now, the only powerup we have will destroy all enemies on the screen.
 								for enemy_idx in 0..state.entities.len() {
-									if state.entities[enemy_idx].entity_type == EntityType::Enemy {
+									if state.entities[enemy_idx].entity_type == EntityType::Enemy || state.entities[enemy_idx].entity_type == EntityType::EnemyBlueScreen {
 										state.entities[enemy_idx].lifetime = Lifetime::Milliseconds(0);
 										// Gain score points.
 										state.score += 10;

@@ -27,7 +27,8 @@ use game::BULLET_SPEED;
 use std;
 
 const ENEMY_FONT_SIZE: u32 = 18;
-const ENEMY_COOLDOWN: i64 = 1_000;
+const ENEMY_COOLDOWN: i64 = 1_500;
+const ENEMY_COOLDOWN_BLUESCREEN: i64 = 6_000;
 const POWERUP_COOLDOWN: i64 = 10_000;
 const ENEMY_NAMES: [&str;4] = [
 	"NULL POINTER",
@@ -54,7 +55,7 @@ impl EntitySpawner {
             cooldowns: std::collections::HashMap::new(),
         };
 
-        p.cooldowns.insert(EntityType::EnemyBlueScreen, ENEMY_COOLDOWN );
+        p.cooldowns.insert(EntityType::EnemyBlueScreen, ENEMY_COOLDOWN_BLUESCREEN );
         p.cooldowns.insert(EntityType::Enemy, ENEMY_COOLDOWN );
         p.cooldowns.insert(EntityType::Powerup, POWERUP_COOLDOWN );
 
@@ -256,7 +257,7 @@ impl EntitySpawner {
             },
             EntityType::EnemyBlueScreen => {
                 // Reset cooldown.
-                self.cooldowns.insert(entity_type, ENEMY_COOLDOWN);
+                self.cooldowns.insert(entity_type, ENEMY_COOLDOWN_BLUESCREEN);
                 
                 // Create enemy name and seed.
                 let name = ENEMY_NAMES[self.rng.gen::<usize>() % ENEMY_NAMES.len()].clone();
