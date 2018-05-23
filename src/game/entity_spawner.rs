@@ -54,6 +54,7 @@ impl EntitySpawner {
             cooldowns: std::collections::HashMap::new(),
         };
 
+        p.cooldowns.insert(EntityType::EnemyBlueScreen, ENEMY_COOLDOWN );
         p.cooldowns.insert(EntityType::Enemy, ENEMY_COOLDOWN );
         p.cooldowns.insert(EntityType::Powerup, POWERUP_COOLDOWN );
 
@@ -113,7 +114,7 @@ impl EntitySpawner {
 
 
     // Spawns bullets for the enemy
-    pub fn spawn_enemy_bullet(&self, x: f32, y: f32) -> Entity {
+    pub fn spawn_enemy_bullet(&self, x: f32, y: f32, angle: f32) -> Entity {
         let bullet = Entity {
             text: self.text.clone(),
             entity_type: EntityType::EnemyBullet,
@@ -129,7 +130,7 @@ impl EntitySpawner {
                 h: 25.0,
             },
             //movement: Movement::Linear(0.0, 7_000.0),
-            movement: Movement::Linear(0.0, BULLET_SPEED),
+            movement: Movement::Linear(angle.cos() * BULLET_SPEED, angle.sin() *  BULLET_SPEED),
             lifetime: Lifetime::Milliseconds(8_000),
             seed: 0.0,
             timer: 0,
@@ -140,10 +141,12 @@ impl EntitySpawner {
         bullet
     }
 
-    pub fn spawn_enemy(&self, ctx: &mut Context, seed: f64, name: &str) -> Entity {
+    pub fn spawn_enemy(&self, ctx: &mut Context, seed: f64, name: &str, enemy_type: u8) -> Entity {
         let font = graphics::Font::new(ctx, DEFAULT_FONT, ENEMY_FONT_SIZE);
 		let text = graphics::Text::new(ctx, name, &font.unwrap()).unwrap();
-		let e = Entity {
+
+        // Default entity
+		let mut e = Entity {
             text: text,
             entity_type: EntityType::Enemy,
             x: 0.0,
@@ -160,7 +163,7 @@ impl EntitySpawner {
 			movement: Movement::Generated(
 				|t,r,s|{
  					(
-						( ( (t as f64) / 1000.0 + s * 1000.0 ).sin() + r.gen_range(-3.0, 3.0) ) as f32 * 60_f32,
+					    ( ( (t as f64) / 1000.0 + s * 1000.0 ).sin() + r.gen_range(-3.0, 3.0) ) as f32 * 60_f32,
  						(1.0 + ( (t as f64) / 900.0 + s * 100.0).sin() ) as f32 * 60_f32
  					)
  				}
@@ -171,6 +174,26 @@ impl EntitySpawner {
 			bullet_cooldown: 0,
 			angle: 0.0,
         };
+
+        // Certain enemies recieve different traits
+        match enemy_type {
+
+            // Blue screen
+            2 => {
+                e.entity_type = EntityType::EnemyBlueScreen;
+                e.hp = 5; 
+                e.movement = Movement::Generated(
+                    |t,r,s|{
+                        (
+                            ( ( (t as f64) / 1000.0 + s * 1000.0 ).sin() + (t as f64).sin() * 2_f64 ) as f32 * 60_f32,
+                            (1.0 + ( (t as f64) / 900.0 + s * 100.0).sin() + r.gen_range(0.1, 3.0)  ) as f32 * 20_f32
+                        )
+                    }
+                );
+            },
+            _ => ()
+        }
+        
         // Return powerup entity option type.
         e
     }
@@ -226,11 +249,25 @@ impl EntitySpawner {
                 let seed: f64 = self.rng.gen_range(-1.0, 1.0);
                 
                 // Create enemy.
-                let mut entity = self.spawn_enemy(ctx, seed, name);
+                let mut entity = self.spawn_enemy(ctx, seed, name, 1);
                 entity.x = self.rng.gen_range(0.0, ctx.conf.window_mode.width as f32);
                 entity.y = -45.0;
                 return Some(entity);
-            }
+            },
+            EntityType::EnemyBlueScreen => {
+                // Reset cooldown.
+                self.cooldowns.insert(entity_type, ENEMY_COOLDOWN);
+                
+                // Create enemy name and seed.
+                let name = ENEMY_NAMES[self.rng.gen::<usize>() % ENEMY_NAMES.len()].clone();
+                let seed: f64 = self.rng.gen_range(-1.0, 1.0);
+                
+                // Create enemy.
+                let mut entity = self.spawn_enemy(ctx, seed, name, 2);
+                entity.x = self.rng.gen_range(0.0, ctx.conf.window_mode.width as f32);
+                entity.y = -45.0;
+                return Some(entity);
+            },
             EntityType::Powerup => {
                 // Reset cooldown.
                 self.cooldowns.insert(entity_type, POWERUP_COOLDOWN);

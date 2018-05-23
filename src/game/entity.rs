@@ -32,6 +32,7 @@ pub enum EntityType {
 	EnemyBullet,
 	PlayerBullet,
 	Enemy,
+	EnemyBlueScreen,
 	Player,
 	Powerup,
 	Splat,
@@ -154,11 +155,32 @@ impl Entity {
 				if self.bullet_cooldown <= 0 {
 					self.bullet_cooldown = ENEMY_BULLET_COOLDOWN;
 					//enemy_bullet_spawner(self, self.x, self.y);
-					let eb = state.spawner.spawn_enemy_bullet(self.x, self.y);
+					let eb = state.spawner.spawn_enemy_bullet(self.x, self.y, 1.57_f32);
 					state.entities.push(eb);
 
 				}
 			},
+			
+			EntityType::EnemyBlueScreen => {
+				if self.bullet_cooldown <= 0 {
+					self.bullet_cooldown = ENEMY_BULLET_COOLDOWN;
+					//enemy_bullet_spawner(self, self.x, self.y);
+					{
+						let eb = state.spawner.spawn_enemy_bullet(self.x, self.y, 0.985_f32);
+						state.entities.push(eb);
+					}
+					{
+						let eb = state.spawner.spawn_enemy_bullet(self.x, self.y, 1.57_f32);
+						state.entities.push(eb);
+					}
+					{
+						let eb = state.spawner.spawn_enemy_bullet(self.x, self.y, 2.155_f32);
+						state.entities.push(eb);
+					}
+
+				}
+			},
+
 
 			// Boss only code
 			EntityType::Boss => (),

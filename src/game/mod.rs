@@ -130,6 +130,7 @@ impl MainState {
 		// Set up textures
 		s.textures.insert(entity::EntityType::Player, graphics::Image::new(ctx, "/texture/crab.png").unwrap() );
 		s.textures.insert(entity::EntityType::Enemy, graphics::Image::new(ctx, "/texture/enemy.png").unwrap() );
+		s.textures.insert(entity::EntityType::EnemyBlueScreen, graphics::Image::new(ctx, "/texture/enemybluescreen.png").unwrap() );
 		s.textures.insert(entity::EntityType::PlayerBullet, graphics::Image::new(ctx, "/texture/player_bullet.png").unwrap() );
 		s.textures.insert(entity::EntityType::EnemyBullet, graphics::Image::new(ctx, "/texture/enemy_bullet.png").unwrap() );
 		s.textures.insert(entity::EntityType::Powerup, graphics::Image::new(ctx, "/texture/powerup.png").unwrap() );
@@ -194,7 +195,7 @@ fn collision_detection(state: &mut MainState) {
 			EntityType::Player => {
 				for threat_idx in 0..state.entities.len() {
 					match state.entities[threat_idx].entity_type {
-						EntityType::Enemy => {
+						EntityType::Enemy | EntityType::EnemyBlueScreen => {
 							if colliding(state, entity_idx, threat_idx) {
 								state.entities[entity_idx].hp -= state.entities[threat_idx].dam;
 								state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
@@ -230,7 +231,7 @@ fn collision_detection(state: &mut MainState) {
 			EntityType::EnemyBullet => (),
 
 			// If we are an enemy (entity_idx)
-			EntityType::Enemy => {
+			EntityType::Enemy | EntityType::EnemyBlueScreen => {
 				for threat_idx in 0..state.entities.len() {
 					match state.entities[threat_idx].entity_type {
 						// See if we hit the threat
@@ -468,6 +469,15 @@ impl event::EventHandler for MainState {
 								1 => graphics::set_color(ctx, graphics::Color::new(1.0, 0.1, 0.0, 1.0))?,
 								2 => graphics::set_color(ctx, graphics::Color::new(0.9, 0.5, 0.0, 1.0))?,
 								3 => graphics::set_color(ctx, graphics::Color::new(0.0, 1.0, 0.0, 1.0))?,
+								_ => (),
+							}
+						},
+						entity::EntityType::EnemyBlueScreen => {
+							match e.hp {
+								1 => graphics::set_color(ctx, graphics::Color::new(0.5, 0.5, 1.0, 1.0))?,
+								2 => graphics::set_color(ctx, graphics::Color::new(0.7, 0.7, 1.0, 1.0))?,
+								3 => graphics::set_color(ctx, graphics::Color::new(0.8, 0.8, 1.0, 1.0))?,
+								4 => graphics::set_color(ctx, graphics::Color::new(0.9, 0.9, 1.0, 1.0))?,
 								_ => (),
 							}
 						},
