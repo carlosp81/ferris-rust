@@ -36,6 +36,7 @@ pub enum EntityType {
 	Player,
 	Powerup,
 	Splat,
+	Shutoff,
 }
 
 #[derive(Debug)]
@@ -186,6 +187,9 @@ impl Entity {
 			EntityType::Boss => (),
 
 			EntityType::Splat => (),
+
+			EntityType::Shutoff => (),
+			
 			// Player bullet code
 			EntityType::PlayerBullet => {
 				self.angle += delta_ms as f32 / 100.0;

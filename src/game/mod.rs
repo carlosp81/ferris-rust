@@ -40,7 +40,7 @@ const DEFAULT_FONT_SIZE: u32 = 30;
 const PLAYER_BULLET_COOLDOWN: i64 = 250;
 const BULLET_SPEED: f32 = 400.0;
 const ENEMY_BULLET_COOLDOWN: i64 = 2_000;
-const DRAW_BOUNDING_BOXES: bool = true;
+const DRAW_BOUNDING_BOXES: bool = false;
 const DISABLE_SFX: bool = true;
 
 const SHOW_INPUT_DEBUG: bool = true;
@@ -135,6 +135,7 @@ impl MainState {
 		s.textures.insert(entity::EntityType::EnemyBullet, graphics::Image::new(ctx, "/texture/enemy_bullet.png").unwrap() );
 		s.textures.insert(entity::EntityType::Powerup, graphics::Image::new(ctx, "/texture/powerup.png").unwrap() );
 		s.textures.insert(entity::EntityType::Splat, graphics::Image::new(ctx, "/texture/splat.png").unwrap() );
+		s.textures.insert(entity::EntityType::Shutoff, graphics::Image::new(ctx, "/texture/shutoff.png").unwrap() );
 		
 		// Set up sound effects
 		s.sfx.insert("player_shot", audio::Source::new(ctx, "/sounds/player_shot.wav")?);
@@ -399,6 +400,7 @@ impl event::EventHandler for MainState {
 					let y = self.entities[dying_entities[i]].y;
 					match self.entities[dying_entities[i]].entity_type {
 						entity::EntityType::Enemy => self.entities.push(self.spawner.spawn_splat(x, y)),
+						entity::EntityType::EnemyBlueScreen => self.entities.push(self.spawner.spawn_shutoff(x, y)),
 						_ => (), 
 					}
 					
@@ -490,7 +492,7 @@ impl event::EventHandler for MainState {
 								_ => graphics::set_color(ctx, graphics::Color::new(1.0, 1.0, 1.0, 1.0))?,
 							}
 						},
-						entity::EntityType::Splat => {
+						entity::EntityType::Splat | entity::EntityType::Shutoff => {
 							let mut alpha : f32 = match e.lifetime {
 								Lifetime::Forever => 1.0_f32,
 								Lifetime::Milliseconds(r) => r as f32 / 2_000_f32,
