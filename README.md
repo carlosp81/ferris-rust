@@ -4,5 +4,5 @@
 Ideas:\
 *Puyo Puyo Clone (Buyo Buyo).\
 *Space Shooter Clone with crazy terrain generation.\
-*Super Mario Clone.\
+*YES. Super Mario Clone, or go home.\
 *2D RPG with crazy terrain generation.\
