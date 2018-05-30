@@ -35,13 +35,15 @@ use self::entity::{Lifetime, EntityType, Movement};
 
 // Constants
 
-const DEFAULT_FONT: &str = "/font/FiraSans-Regular.ttf";
-const DEFAULT_FONT_SIZE: u32 = 30;
+const DEFAULT_FONT: &str = "/font/PressStart2P.ttf";
+const DEFAULT_FONT_SIZE: u32 = 18;
 const PLAYER_BULLET_COOLDOWN: i64 = 250;
 const BULLET_SPEED: f32 = 400.0;
 const ENEMY_BULLET_COOLDOWN: i64 = 2_000;
 const DRAW_BOUNDING_BOXES: bool = false;
 const DISABLE_SFX: bool = true;
+const SPLAT_LIFETIME: i64 = 500;
+const SHUTOFF_LIFETIME: i64 = 1_000;
 
 const SHOW_INPUT_DEBUG: bool = true;
 
@@ -95,7 +97,7 @@ impl MainState {
     pub fn new(ctx: &mut Context) -> GameResult<MainState> {
         // The ttf file will be in your resources directory. Later, we
         // will mount that directory so we can omit it in the path here.
-        let score_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", 32)?;
+        let score_font = graphics::Font::new(ctx, DEFAULT_FONT, 20)?;
        
 		let score_text = graphics::Text::new(ctx, "Score: ", &score_font)?;
 
@@ -159,7 +161,7 @@ impl MainState {
 		state.score = 0;
 
 		// Create a new player object
-		let player_font = graphics::Font::new(ctx, "/font/FiraSans-Regular.ttf", DEFAULT_FONT_SIZE);
+		let player_font = graphics::Font::new(ctx, DEFAULT_FONT, DEFAULT_FONT_SIZE);
 		let player = entity::Entity {
 			text: graphics::Text::new(ctx, "", &player_font.unwrap()).unwrap(),
             entity_type: entity::EntityType::Player,
@@ -424,15 +426,14 @@ impl event::EventHandler for MainState {
 
 		match self.game_state {
 			MenuState::Menu => {
-				// Draw the 2 background copies staggered according to elapsed_ms
-				graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, 0.0 + (self.elapsed_ms/40%1920) as f32), 0.0)?;
-				graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, -1920.0 + (self.elapsed_ms/40 % 1920) as f32), 0.0)?;
+				// Draw the background
+				graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, 0.0), 0.0)?;
+				
+				let mut text = graphics::Text::new(ctx, &format!("Press Space to play game"), &self.score_font).unwrap();
+				graphics::draw(ctx, &text, graphics::Point2::new(200.0, 200.0), 0.0)?;
 
-				self.score_text = graphics::Text::new(ctx, &format!("Main Menu: Press Space to play game"), &self.score_font).unwrap();
-				graphics::draw(ctx, &self.score_text, graphics::Point2::new(200.0, 200.0), 0.0)?;
-
-				self.score_text = graphics::Text::new(ctx, &format!("Recent Scores:"), &self.score_font).unwrap();
-				graphics::draw(ctx, &self.score_text, graphics::Point2::new(200.0, 250.0), 0.0)?;
+				text = graphics::Text::new(ctx, &format!("Recent Scores:"), &self.score_font).unwrap();
+				graphics::draw(ctx, &text, graphics::Point2::new(200.0, 250.0), 0.0)?;
 
 				for i in 0 .. self.high_scores.len() {
 					self.score_text = graphics::Text::new(ctx, &format!("Score: {}", self.high_scores[i]), &self.score_font).unwrap();
@@ -446,8 +447,9 @@ impl event::EventHandler for MainState {
 				let _window_height = ctx.conf.window_mode.height;
 
 				// Draw the 2 background copies staggered according to elapsed_ms
-				graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, 0.0 + (self.elapsed_ms/40%1920) as f32), 0.0)?;
-				graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, -1920.0 + (self.elapsed_ms/40 % 1920) as f32), 0.0)?;
+				let background_y = ( (self.elapsed_ms/40%1920) as i32 / 2 * 2 ) as f32;
+				graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, background_y), 0.0)?;
+				graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, -1920.0 + background_y), 0.0)?;
 				{
 					// Draw the player's life graphics
 					let player = &self.entities[0];
@@ -461,7 +463,7 @@ impl event::EventHandler for MainState {
 				}
 				// Draw all entities
 				for e in &mut self.entities {
-					let pos = graphics::Point2::new(e.x, e.y);
+					let pos = graphics::Point2::new((e.x as i32 / 4 * 4 ) as f32, (e.y as i32 / 4 * 4) as f32);
 					let texture = &self.textures[&e.entity_type];
 
 					// Special drawing conditions start
@@ -495,7 +497,7 @@ impl event::EventHandler for MainState {
 						entity::EntityType::Splat | entity::EntityType::Shutoff => {
 							let mut alpha : f32 = match e.lifetime {
 								Lifetime::Forever => 1.0_f32,
-								Lifetime::Milliseconds(r) => r as f32 / 2_000_f32,
+								Lifetime::Milliseconds(r) => r as f32 / SPLAT_LIFETIME as f32,
 							};
 							graphics::set_color(ctx, graphics::Color::new(alpha, alpha, alpha, alpha))?;
 						}
@@ -518,7 +520,8 @@ impl event::EventHandler for MainState {
 					graphics::set_color(ctx, graphics::Color::new(1.0, 1.0, 1.0, 1.0))?;
 					
 					// If this is an enemy, include a name tag.
-					if e.entity_type == entity::EntityType::Enemy {
+					if e.entity_type == entity::EntityType::Enemy ||
+						e.entity_type == entity::EntityType::EnemyBlueScreen {
 						let offset = 30.0;
 						let text_pos = graphics::Point2::new(
 							e.x + texture.width() as f32 + offset, 
@@ -527,7 +530,7 @@ impl event::EventHandler for MainState {
 						graphics::draw(ctx, &e.text, text_pos, 0.0)?;
 						graphics::line(ctx, &[
 							graphics::Point2::new(text_pos.x - 5.0, text_pos.y + e.text.height() as f32),
-							graphics::Point2::new(pos.x + texture.width() as f32, pos.y)], 1.0)?;
+							graphics::Point2::new(pos.x + texture.width() as f32, pos.y)], 4.0)?;
 					}
 					
 					
