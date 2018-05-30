@@ -41,7 +41,7 @@ const PLAYER_BULLET_COOLDOWN: i64 = 250;
 const BULLET_SPEED: f32 = 400.0;
 const ENEMY_BULLET_COOLDOWN: i64 = 2_000;
 const DRAW_BOUNDING_BOXES: bool = false;
-const DISABLE_SFX: bool = true;
+const DISABLE_SFX: bool = false;
 const SPLAT_LIFETIME: i64 = 500;
 const SHUTOFF_LIFETIME: i64 = 1_000;
 
