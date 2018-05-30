@@ -22,11 +22,10 @@ extern crate rand;
 use ggez::{Context,graphics};
 use self::rand::Rng;
 use game::entity::{Lifetime, Movement, Entity, EntityType};
-use game::DEFAULT_FONT;
-use game::BULLET_SPEED;
+use game::{DEFAULT_FONT, BULLET_SPEED, SPLAT_LIFETIME, SHUTOFF_LIFETIME};
 use std;
 
-const ENEMY_FONT_SIZE: u32 = 18;
+const ENEMY_FONT_SIZE: u32 = 12;
 const ENEMY_COOLDOWN: i64 = 1_500;
 const ENEMY_COOLDOWN_BLUESCREEN: i64 = 6_000;
 const POWERUP_COOLDOWN: i64 = 10_000;
@@ -78,7 +77,7 @@ impl EntitySpawner {
                 h: 80.0,
             },
             movement: Movement::None,
-            lifetime: Lifetime::Milliseconds(2_000),
+            lifetime: Lifetime::Milliseconds(SPLAT_LIFETIME),
             seed: 0.0,
             timer: 0,
             bullet_cooldown: 0,
@@ -103,7 +102,7 @@ impl EntitySpawner {
                 h: 80.0,
             },
             movement: Movement::None,
-            lifetime: Lifetime::Milliseconds(2_000),
+            lifetime: Lifetime::Milliseconds(SHUTOFF_LIFETIME),
             seed: 0.0,
             timer: 0,
             bullet_cooldown: 0,
@@ -167,7 +166,7 @@ impl EntitySpawner {
     }
 
     pub fn spawn_enemy(&self, ctx: &mut Context, seed: f64, name: &str, enemy_type: u8) -> Entity {
-        let font = graphics::Font::new(ctx, DEFAULT_FONT, ENEMY_FONT_SIZE);
+        let mut font = graphics::Font::new(ctx, DEFAULT_FONT, ENEMY_FONT_SIZE);
 		let text = graphics::Text::new(ctx, name, &font.unwrap()).unwrap();
 
         // Default entity
@@ -202,10 +201,11 @@ impl EntitySpawner {
 
         // Certain enemies recieve different traits
         match enemy_type {
-
-            // Blue screen
+			// Blue screen
             2 => {
-                e.entity_type = EntityType::EnemyBlueScreen;
+			    font = graphics::Font::new(ctx, DEFAULT_FONT, ENEMY_FONT_SIZE);
+				e.text = graphics::Text::new(ctx, "BSOD", &font.unwrap()).unwrap();        
+				e.entity_type = EntityType::EnemyBlueScreen;
                 e.hp = 5; 
                 e.movement = Movement::Generated(
                     |t,r,s|{
@@ -224,7 +224,6 @@ impl EntitySpawner {
     }
 
     pub fn spawn_powerup(&self) -> Entity {
-
         let e = Entity {
             text: self.text.clone(),
             entity_type: EntityType::Powerup,
@@ -236,8 +235,8 @@ impl EntitySpawner {
         	bounds: graphics::Rect {
 				x: 0.0,
 				y: 0.0,
-				w: 32.0,
-				h: 32.0,
+				w: 64.0,
+				h: 64.0,
 			},
 			movement: Movement::Linear(0.0, 50.0),
 			lifetime: Lifetime::Milliseconds(100_000),
