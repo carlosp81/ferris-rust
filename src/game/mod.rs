@@ -83,7 +83,6 @@ pub struct MainState {
 	elapsed_ms: u64,
 	delta_ms: u64,
 	textures: std::collections::HashMap<entity::EntityType, graphics::Image>,
-	bgm: audio::Source,
 	rng: rand::ThreadRng,
 	sfx: std::collections::HashMap<&'static str, audio::Source>,
 	quit: bool,
@@ -121,7 +120,6 @@ impl MainState {
 			delta_ms: 0,	//Elapsed time since last frame, in milliseconds
 			start_time:  std::time::SystemTime::now(),
 			textures: std::collections::HashMap::new(),
-			bgm: audio::Source::new(ctx, "/sounds/Tejaswi-Hyperbola.ogg")?,
 			rng: rand::thread_rng(),
 			sfx: std::collections::HashMap::new(),
 			quit: false,
@@ -141,52 +139,58 @@ impl MainState {
 		
 		// Set up sound effects
 		s.sfx.insert("player_shot", audio::Source::new(ctx, "/sounds/player_shot.wav")?);
+		s.sfx.insert("hit", audio::Source::new(ctx, "/sounds/hit.wav")?);
+		s.sfx.insert("explode", audio::Source::new(ctx, "/sounds/explode.wav")?);
+		s.sfx.insert("intro", audio::Source::new(ctx, "/sounds/intro.ogg")?);
+		s.sfx.insert("bgm", audio::Source::new(ctx, "/sounds/Tejaswi-Hyperbola.ogg")?);
 		
-
 		if !DISABLE_SFX {
-			s.bgm.play()?;
+			s.sfx["intro"].play().unwrap();
 		}
         Ok(s)
     }
 }
 
 	
-	// Call this to start a new game
-	pub fn newgame(state: &mut MainState, ctx: &mut Context) {
-		
-		// Clear out old entities
-		state.entities.clear();
+// Call this to start a new game
+pub fn newgame(state: &mut MainState, ctx: &mut Context) {
+	
+	// Clear out old entities
+	state.entities.clear();
 
-		// Reset the score
-		state.score = 0;
+	// Reset the score
+	state.score = 0;
 
-		// Create a new player object
-		let player_font = graphics::Font::new(ctx, DEFAULT_FONT, DEFAULT_FONT_SIZE);
-		let player = entity::Entity {
-			text: graphics::Text::new(ctx, "", &player_font.unwrap()).unwrap(),
-            entity_type: entity::EntityType::Player,
-		    x: (ctx.conf.window_mode.width as f32 / 2.0) - (state.textures[&entity::EntityType::Player].width() as f32 / 2.0),
-            y: ctx.conf.window_mode.height as f32 - state.textures[&entity::EntityType::Player].height() as f32,
-            hp: 5,
-			dam: 0,
-            vel: 375.0,
-			bounds: graphics::Rect {
-				x: 60.0,
-				y: 40.0,
-				w: 10.0,
-				h: 18.0,
-			},
-			movement: Movement::None,
-			lifetime: Lifetime::Forever,
-			seed: 0.0,
-			timer: 0,
-			bullet_cooldown: PLAYER_BULLET_COOLDOWN,
-			angle: 0.0,
-        };
-		
-		state.entities.push(player);
-
+	// Create a new player object
+	let player_font = graphics::Font::new(ctx, DEFAULT_FONT, DEFAULT_FONT_SIZE);
+	let player = entity::Entity {
+		text: graphics::Text::new(ctx, "", &player_font.unwrap()).unwrap(),
+		entity_type: entity::EntityType::Player,
+		x: (ctx.conf.window_mode.width as f32 / 2.0) - (state.textures[&entity::EntityType::Player].width() as f32 / 2.0),
+		y: ctx.conf.window_mode.height as f32 - state.textures[&entity::EntityType::Player].height() as f32,
+		hp: 5,
+		dam: 0,
+		vel: 375.0,
+		bounds: graphics::Rect {
+			x: 60.0,
+			y: 40.0,
+			w: 10.0,
+			h: 18.0,
+		},
+		movement: Movement::None,
+		lifetime: Lifetime::Forever,
+		seed: 0.0,
+		timer: 0,
+		bullet_cooldown: PLAYER_BULLET_COOLDOWN,
+		angle: 0.0,
+	};
+	
+	state.entities.push(player);
+	if !DISABLE_SFX {
+		state.sfx["intro"].pause();
+		state.sfx["bgm"].play().unwrap();
 	}
+}
 
 // Collision detection
 fn collision_detection(state: &mut MainState) {
@@ -202,12 +206,18 @@ fn collision_detection(state: &mut MainState) {
 							if colliding(state, entity_idx, threat_idx) {
 								state.entities[entity_idx].hp -= state.entities[threat_idx].dam;
 								state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
+								if !DISABLE_SFX {
+									state.sfx["hit"].play().unwrap();
+								}
 							}
 						},
 						EntityType::EnemyBullet => {
 							if colliding(state, entity_idx, threat_idx) {
 								state.entities[entity_idx].hp -= state.entities[threat_idx].dam;
 								state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
+								if !DISABLE_SFX {
+									state.sfx["hit"].play().unwrap();
+								}
 							}
 						},
 						EntityType::Powerup => {
@@ -221,6 +231,9 @@ fn collision_detection(state: &mut MainState) {
 									}
 								}
 								state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
+								if !DISABLE_SFX {
+									state.sfx["explode"].play().unwrap();
+								}
 							}
 						},
 						_ => (),
@@ -247,6 +260,9 @@ fn collision_detection(state: &mut MainState) {
 								}
 								// Gain score points
 								state.score += 10;
+								if !DISABLE_SFX {
+									state.sfx["hit"].play().unwrap();
+								}
 							}
 						},
 						_ => (),
@@ -373,6 +389,9 @@ impl event::EventHandler for MainState {
 				
 				let mut dying_entities: Vec<usize> = vec![];
 
+				// Boolean to sound an explosion if necessary
+				let mut do_explosion_sound = false;
+
 				// Grab the dying entities.
 				for all_idx in 0..self.entities.len() {
 					let e = &mut self.entities[all_idx];
@@ -389,13 +408,23 @@ impl event::EventHandler for MainState {
 					}
 
 					if dying {
+						// Check for any entities dying by low hp.
+						if e.hp <= 0 {
+							do_explosion_sound = true;
+						}
+						
 						// 100% guarentee we can kill off the target by hp alone.
 						e.hp = 0;
 						dying_entities.push(all_idx);
 					}
 				
 				}
-
+				
+				// If at least one entity has died from low hp, we should make an explosion sound
+				if do_explosion_sound {
+					self.sfx["explode"].play().unwrap();
+				}
+				
 				// Spawn some on_death effects.
 				for i in 0..dying_entities.len() {
 					let x = self.entities[dying_entities[i]].x;
@@ -412,12 +441,14 @@ impl event::EventHandler for MainState {
 				self.entities.retain(|e| {
 					e.hp > 0
 				});
-		
+
+				// Keep bgm playing in a loop
+				if !DISABLE_SFX && !self.sfx["bgm"].playing() {
+					self.sfx["bgm"].play().unwrap();
+				}
 			}
 		}
 		update_time(self);
-
-		
 
         Ok(())
     }
@@ -463,7 +494,7 @@ impl event::EventHandler for MainState {
 				}
 				// Draw all entities
 				for e in &mut self.entities {
-					let pos = graphics::Point2::new((e.x as i32 / 4 * 4 ) as f32, (e.y as i32 / 4 * 4) as f32);
+					let pos = graphics::Point2::new((e.x as i32 / 2 * 2 ) as f32, (e.y as i32 / 2 * 2) as f32);
 					let texture = &self.textures[&e.entity_type];
 
 					// Special drawing conditions start
@@ -513,7 +544,7 @@ impl event::EventHandler for MainState {
 						let angle = e.angle as f64 + (5.0 * std::f64::consts::PI / 4.0);
 						let x = (half_width + half_width * (2.0_f64).sqrt() * angle.cos()) as f32;
 						let y = (half_width + half_width * (2.0_f64).sqrt() * angle.sin()) as f32;
-						graphics::draw(ctx, texture, graphics::Point2::new(e.x + x, e.y+ y), e.angle)?;
+						graphics::draw(ctx, texture, graphics::Point2::new(pos.x + x, pos.y + y), e.angle)?;
 					}
 				
 					// End drawing conditions: Reset drawing conditions
@@ -522,11 +553,15 @@ impl event::EventHandler for MainState {
 					// If this is an enemy, include a name tag.
 					if e.entity_type == entity::EntityType::Enemy ||
 						e.entity_type == entity::EntityType::EnemyBlueScreen {
-						let offset = 30.0;
+						let offset = 30;
 						let text_pos = graphics::Point2::new(
-							e.x + texture.width() as f32 + offset, 
-							e.y - offset);
-						//	, e.y);
+							((e.x as i32 + texture.width() as i32 + offset) / 2 * 2 ) as f32,
+							((e.y as i32 - offset) / 2 * 2) as f32);
+					
+						//let text_pos = graphics::Point2::new(
+						//	e.x + texture.width() as f32 + offset, 
+						//	e.y - offset);
+						
 						graphics::draw(ctx, &e.text, text_pos, 0.0)?;
 						graphics::line(ctx, &[
 							graphics::Point2::new(text_pos.x - 5.0, text_pos.y + e.text.height() as f32),
