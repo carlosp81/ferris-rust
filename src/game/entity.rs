@@ -20,6 +20,7 @@ DEALINGS IN THE SOFTWARE.
 extern crate ggez;
 extern crate rand;
 
+use std;
 use ggez::graphics;
 use ggez::Context;
 use game::MainState;
@@ -28,11 +29,13 @@ use game::ENEMY_BULLET_COOLDOWN;
 
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum EntityType {
-	Boss,
+	Empty,
+	_Boss,
 	EnemyBullet,
 	PlayerBullet,
 	Enemy,
 	EnemyBlueScreen,
+	Life,
 	Player,
 	Powerup,
 	Splat,
@@ -64,7 +67,7 @@ pub struct Entity {
     pub x: f32,
     pub y: f32,
     pub hp: i32,
-	pub dam: i32,
+	pub damage: i32,
     pub vel: f32,
 	pub movement: Movement,
 	pub bounds: graphics::Rect,
@@ -75,7 +78,33 @@ pub struct Entity {
 	pub angle: f32,
 }
 
-impl Entity {
+impl Default for Entity {
+    fn default() -> Entity {
+        Entity {
+            name: "empty".to_string(),
+			entity_type: EntityType::Empty,
+			x: 0.0,
+			y: 0.0,
+			hp: 1,
+			damage: 1,
+			vel: 0.0,
+			movement: Movement::None,
+			bounds: graphics::Rect {
+				x: 0.0,
+				y: 0.0,
+				w: 1.0,
+				h: 1.0,
+			},
+			lifetime: Lifetime::Forever,
+			seed: 1.0,
+			timer: 0,
+			bullet_cooldown: 0,
+			angle: 0.0,
+        }
+    }
+}
+
+impl Entity {	
     pub fn translate(&mut self, dx: f32, dy: f32) {
         self.x += dx;
         self.y += dy;
@@ -109,7 +138,6 @@ impl Entity {
 				},
 		}
 	
-
 		match self.entity_type {
 
 			// Player only code
@@ -156,7 +184,7 @@ impl Entity {
 				if self.bullet_cooldown <= 0 {
 					self.bullet_cooldown = ENEMY_BULLET_COOLDOWN;
 					//enemy_bullet_spawner(self, self.x, self.y);
-					let eb = state.spawner.spawn_enemy_bullet(self.x, self.y, 1.57_f32);
+					let eb = state.spawner.spawn_enemy_bullet(self.x, self.y, (3.0 * std::f64::consts::PI / 2.0) as f32);
 					state.entities.push(eb);
 
 				}
@@ -167,39 +195,27 @@ impl Entity {
 					self.bullet_cooldown = ENEMY_BULLET_COOLDOWN;
 					//enemy_bullet_spawner(self, self.x, self.y);
 					{
-						let eb = state.spawner.spawn_enemy_bullet(self.x, self.y, 0.985_f32);
+						let eb = state.spawner.spawn_enemy_bullet(self.x, self.y, (5.0 * std::f64::consts::PI / 4.0) as f32);
 						state.entities.push(eb);
 					}
 					{
-						let eb = state.spawner.spawn_enemy_bullet(self.x, self.y, 1.57_f32);
+						let eb = state.spawner.spawn_enemy_bullet(self.x, self.y, (3.0 * std::f64::consts::PI / 2.0) as f32);
 						state.entities.push(eb);
 					}
 					{
-						let eb = state.spawner.spawn_enemy_bullet(self.x, self.y, 2.155_f32);
+						let eb = state.spawner.spawn_enemy_bullet(self.x, self.y, (7.0 * std::f64::consts::PI / 4.0) as f32);
 						state.entities.push(eb);
 					}
 
 				}
 			},
 
-
-			// Boss only code
-			EntityType::Boss => (),
-
-			EntityType::Splat => (),
-
-			EntityType::Shutoff => (),
-			
 			// Player bullet code
 			EntityType::PlayerBullet => {
 				self.angle += delta_ms as f32 / 100.0;
 			},
 
-			// Enemy bullet code
-			EntityType::EnemyBullet => (),
-
-			// Powerup codes
-			EntityType::Powerup => (),
+			_ => (),
 		}
 		
 	}

@@ -30,13 +30,17 @@ const ENEMY_COOLDOWN_BLUESCREEN: i64 = 6_000;
 const POWERUP_COOLDOWN: i64 = 10_000;
 
 pub struct EntitySpawner {
+	pub _screen_height: u32,
+	pub screen_width: u32,
 	pub rng: rand::ThreadRng,
     pub cooldowns: std::collections::HashMap<EntityType, i64>,
 }
 
 impl EntitySpawner {
-    pub fn new(ctx: &mut Context) -> EntitySpawner {        
+    pub fn new(ctx: &Context) -> EntitySpawner {        
         let mut p = EntitySpawner {
+			_screen_height: ctx.conf.window_mode.height,
+			screen_width: ctx.conf.window_mode.width,
             rng: rand::thread_rng(),
             cooldowns: std::collections::HashMap::new(),
         };
@@ -55,7 +59,7 @@ impl EntitySpawner {
             x: x,
             y: y,
             hp: 1,
-            dam: 0,
+            damage: 0,
             vel: 0.0,
             bounds: graphics::Rect {
                 x: 0.0,
@@ -80,7 +84,7 @@ impl EntitySpawner {
             x: x,
             y: y,
             hp: 1,
-            dam: 0,
+            damage: 0,
             vel: 0.0,
             bounds: graphics::Rect {
                 x: 0.0,
@@ -99,27 +103,20 @@ impl EntitySpawner {
     }
     // Spawns bullets for the player
     pub fn player_bullet_spawner(&self, x: f32, y: f32) -> Entity {
-        let bullet = Entity {
-			name: "player bullet".to_string(),
-            entity_type: EntityType::PlayerBullet,
-            x: x,
-            y: y,
-            hp: 1,
-            dam: 1,
-            vel: 10.0,
-            bounds: graphics::Rect {
-                x: 0.0,
-                y: 0.0,
-                w: 50.0,
-                h: 50.0,
-            },
-            movement: Movement::Linear(0.0, -BULLET_SPEED),
-            lifetime: Lifetime::Milliseconds(2_000),
-            seed: 0.0,
-            timer: 0,
-            bullet_cooldown: 0,
-            angle: 0.0,
+		let mut bullet = Entity::default();
+		bullet.x = x;
+		bullet.y = y;
+		bullet.bounds = graphics::Rect{
+		    x: 0.0,
+            y: 0.0,
+            w: 50.0,
+            h: 50.0,
         };
+		bullet.movement = Movement::Linear(0.0, -BULLET_SPEED);
+        bullet.lifetime = Lifetime::Milliseconds(2_000);
+		bullet.entity_type = EntityType::PlayerBullet;
+		bullet.name = "player_bullet".to_string();
+		
         bullet
     }
 
@@ -132,7 +129,7 @@ impl EntitySpawner {
             x,
             y,
             hp: 1,
-            dam: 1,
+            damage: 1,
             vel: 1000.0,
             bounds: graphics::Rect {
                 x: 0.0,
@@ -141,7 +138,7 @@ impl EntitySpawner {
                 h: 25.0,
             },
             //movement: Movement::Linear(0.0, 7_000.0),
-            movement: Movement::Linear(angle.cos() * BULLET_SPEED, angle.sin() *  BULLET_SPEED),
+            movement: Movement::Linear(angle.cos() * BULLET_SPEED, -angle.sin() * BULLET_SPEED),
             lifetime: Lifetime::Milliseconds(8_000),
             seed: 0.0,
             timer: 0,
@@ -152,7 +149,7 @@ impl EntitySpawner {
         bullet
     }
 
-    pub fn spawn_enemy(&self, ctx: &mut Context, seed: f64, name: &str, enemy_type: u8) -> Entity {
+    pub fn spawn_enemy(&self, seed: f64, name: &str, enemy_type: u8) -> Entity {
         // Default entity
 		let mut e = Entity {
 			name: name.to_string(),
@@ -160,7 +157,7 @@ impl EntitySpawner {
             x: 0.0,
             y: 0.0,
             hp: 3,
-            dam: 1,
+            damage: 1,
             vel: 0.0,
         	bounds: graphics::Rect {
 				x: 18.0,
@@ -213,7 +210,7 @@ impl EntitySpawner {
             x: 0.0,
             y: 0.0,
             hp: 1,
-            dam: 1,
+            damage: 1,
             vel: 10.0,
         	bounds: graphics::Rect {
 				x: 0.0,
@@ -234,7 +231,7 @@ impl EntitySpawner {
 
     // Update the cooldowns on all entity types that have them. If a cooldown triggers, 
     // spawn that entity and return it.
-    pub fn update(&mut self, delta_ms: u64, ctx: &mut Context) -> Option<Entity> {
+    pub fn update(&mut self, delta_ms: u64) -> Option<Entity> {
         
         // We dont really care about matching the player type, so we use that as a dummy.
         let mut entity_type: EntityType = EntityType::Player;
@@ -256,8 +253,8 @@ impl EntitySpawner {
                 let seed: f64 = self.rng.gen_range(-1.0, 1.0);
                 
                 // Create enemy.
-                let mut entity = self.spawn_enemy(ctx, seed, name, 1);
-                entity.x = self.rng.gen_range(0.0, ctx.conf.window_mode.width as f32);
+                let mut entity = self.spawn_enemy(seed, name, 1);
+                entity.x = self.rng.gen_range(0.0, self.screen_width as f32);
                 entity.y = -45.0;
                 return Some(entity);
             },
@@ -270,8 +267,8 @@ impl EntitySpawner {
                 let seed: f64 = self.rng.gen_range(-1.0, 1.0);
                 
                 // Create enemy.
-                let mut entity = self.spawn_enemy(ctx, seed, name, 2);
-                entity.x = self.rng.gen_range(0.0, ctx.conf.window_mode.width as f32);
+                let mut entity = self.spawn_enemy(seed, name, 2);
+                entity.x = self.rng.gen_range(0.0, self.screen_width as f32);
                 entity.y = -45.0;
                 return Some(entity);
             },
@@ -281,7 +278,7 @@ impl EntitySpawner {
 
                 // Create powerup.
                 let mut powerup = self.spawn_powerup();
-                powerup.x = self.rng.gen_range(0.0, ctx.conf.window_mode.width as f32);
+                powerup.x = self.rng.gen_range(0.0, self.screen_width as f32);
                 powerup.y = -45.0;
                 return Some(powerup);
             },
