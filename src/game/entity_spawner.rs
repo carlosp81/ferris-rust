@@ -124,7 +124,7 @@ impl EntitySpawner {
 
     // Spawns bullets for the enemy
     pub fn spawn_enemy_bullet(&self, x: f32, y: f32, angle: f32) -> Entity {
-        let bullet = Entity::default();
+        let mut bullet = Entity::default();
         bullet.x = x;
         bullet.y = y;
 		bullet.bounds = graphics::Rect{
@@ -133,10 +133,11 @@ impl EntitySpawner {
             w: 25.0,
             h: 25.0,
         };
-		bullet.movement = movement: Movement::Linear(angle.cos() * BULLET_SPEED, -angle.sin() * BULLET_SPEED);
+		bullet.movement = Movement::Linear(angle.cos() * BULLET_SPEED, -angle.sin() * BULLET_SPEED);
         bullet.lifetime = Lifetime::Milliseconds(8_000);
 		bullet.entity_type = EntityType::EnemyBullet;
-		bullet.name = "enemy_bullet".to_string();
+		bullet.name = "player_bullet".to_string();
+		
         bullet
     }
 
