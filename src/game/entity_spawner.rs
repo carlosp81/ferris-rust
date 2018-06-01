@@ -27,6 +27,7 @@ use std;
 
 const ENEMY_COOLDOWN: i64 = 1_500;
 const ENEMY_COOLDOWN_BLUESCREEN: i64 = 6_000;
+const ENEMY_COOLDOWN_BOSS: i64 = 60_000;
 const POWERUP_COOLDOWN: i64 = 10_000;
 
 pub struct EntitySpawner {
@@ -45,9 +46,10 @@ impl EntitySpawner {
             cooldowns: std::collections::HashMap::new(),
         };
 
-        p.cooldowns.insert(EntityType::EnemyBlueScreen, ENEMY_COOLDOWN_BLUESCREEN );
         p.cooldowns.insert(EntityType::Enemy, ENEMY_COOLDOWN );
-        p.cooldowns.insert(EntityType::Powerup, POWERUP_COOLDOWN );
+        p.cooldowns.insert(EntityType::EnemyBlueScreen, ENEMY_COOLDOWN_BLUESCREEN );
+		p.cooldowns.insert(EntityType::Boss, ENEMY_COOLDOWN_BOSS );
+		p.cooldowns.insert(EntityType::Powerup, POWERUP_COOLDOWN );
 
         p
     }
@@ -119,7 +121,6 @@ impl EntitySpawner {
 		
         bullet
     }
-
 
     // Spawns bullets for the enemy
     pub fn spawn_enemy_bullet(&self, x: f32, y: f32, angle: f32) -> Entity {
@@ -196,6 +197,26 @@ impl EntitySpawner {
                     }
                 );
             },
+			3 => {
+				e.name = "ANSI C".to_string();
+				e.entity_type = EntityType::Boss;
+				e.hp = 25;
+				e.movement = Movement::Generated(
+				    |t,_r,s|{
+                        (
+                            ( (t as f64) / 1000.0 + s * 1000.0 ).sin() as f32 * 60.0,
+							20.0
+                        )
+                    }
+                );
+				e.bounds = graphics::Rect {
+					x: 30.0,
+					y: 20.0,
+					w: 140.0,
+					h: 130.0,
+				};
+			},
+
             _ => ()
         }
         
@@ -272,6 +293,19 @@ impl EntitySpawner {
                 entity.y = -45.0;
                 return Some(entity);
             },
+			EntityType::Boss => {
+				// Reset cooldown.
+                self.cooldowns.insert(entity_type, ENEMY_COOLDOWN_BOSS);
+                
+                // Create seed.
+                let seed: f64 = self.rng.gen_range(-1.0, 1.0);
+                
+                // Create enemy.
+                let mut entity = self.spawn_enemy(seed, "ANSI C", 3);
+                entity.x = self.screen_width as f32 / 2.0;
+                entity.y = -200.0;
+                return Some(entity);
+			},
             EntityType::Powerup => {
                 // Reset cooldown.
                 self.cooldowns.insert(entity_type, POWERUP_COOLDOWN);

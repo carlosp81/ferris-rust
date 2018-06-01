@@ -32,6 +32,7 @@ use self::entity_spawner::EntitySpawner;
 use self::entity::{Lifetime, EntityType, Movement};
 
 // Constants
+const BOSS_BULLET_COOLDOWN: i64 = 50;
 const BULLET_SPEED: f32 = 400.0;
 const DEFAULT_FONT: &str = "/font/PressStart2P.ttf";
 const DEFAULT_FONT_SIZE: u32 = 20;
@@ -129,6 +130,7 @@ impl MainState {
 		s.textures.insert(entity::EntityType::Splat, graphics::Image::new(ctx, "/texture/splat.png").unwrap() );
 		s.textures.insert(entity::EntityType::Shutoff, graphics::Image::new(ctx, "/texture/shutoff.png").unwrap() );
 		s.textures.insert(entity::EntityType::Life, graphics::Image::new(ctx, "/texture/cpu.png").unwrap()); 
+		s.textures.insert(entity::EntityType::Boss, graphics::Image::new(ctx, "/texture/boss.png").unwrap());
 		
 		// Set up music and sound effects
 		s.sfx.insert("player_shot", audio::Source::new(ctx, "/sounds/player_shot.wav")?);
@@ -214,6 +216,14 @@ fn handle_collisions(state: &mut MainState) {
 								}
                             }
 						},
+						EntityType::Boss => {
+							if colliding(state, entity_idx, threat_idx) {
+								state.entities[entity_idx].hp -= state.entities[threat_idx].damage;
+								if !DISABLE_SFX {
+									state.sfx["hit"].play().unwrap();
+								}
+							}
+						},
 						EntityType::EnemyBullet => {
 							if colliding(state, entity_idx, threat_idx) {
 								state.entities[entity_idx].hp -= state.entities[threat_idx].damage;
@@ -250,7 +260,7 @@ fn handle_collisions(state: &mut MainState) {
 			EntityType::EnemyBullet => (),
 
 			// If we are an enemy (entity_idx)
-			EntityType::Enemy | EntityType::EnemyBlueScreen => {
+			EntityType::Enemy | EntityType::EnemyBlueScreen | EntityType::Boss => {
 				for threat_idx in 0..state.entities.len() {
 					match state.entities[threat_idx].entity_type {
 						// See if we hit the threat

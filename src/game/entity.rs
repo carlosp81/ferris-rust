@@ -23,14 +23,13 @@ extern crate rand;
 use std;
 use ggez::graphics;
 use ggez::Context;
-use game::MainState;
-use game::ENEMY_BULLET_COOLDOWN;
-
+use game::{MainState, BOSS_BULLET_COOLDOWN, ENEMY_BULLET_COOLDOWN};
+use game::rand::Rng;
 
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum EntityType {
 	Empty,
-	_Boss,
+	Boss,
 	EnemyBullet,
 	PlayerBullet,
 	Enemy,
@@ -62,44 +61,44 @@ pub enum Movement {
 }
 
 pub struct Entity {
-	pub name: String,
-	pub entity_type: EntityType,
-    pub x: f32,
-    pub y: f32,
-    pub hp: i32,
-	pub damage: i32,
-    pub vel: f32,
-	pub movement: Movement,
+	pub angle: f32,
 	pub bounds: graphics::Rect,
+	pub bullet_cooldown: i64,
+	pub damage: i32,
+	pub entity_type: EntityType,
+    pub hp: i32,
 	pub lifetime: Lifetime,
+	pub movement: Movement,
+	pub name: String,
 	pub seed: f64,
 	pub timer: u64,
-	pub bullet_cooldown: i64,
-	pub angle: f32,
+    pub vel: f32,
+	pub x: f32,
+    pub y: f32,	
 }
 
 impl Default for Entity {
     fn default() -> Entity {
         Entity {
-            name: "empty".to_string(),
-			entity_type: EntityType::Empty,
-			x: 0.0,
-			y: 0.0,
-			hp: 1,
-			damage: 1,
-			vel: 0.0,
-			movement: Movement::None,
+            angle: 0.0,
 			bounds: graphics::Rect {
 				x: 0.0,
 				y: 0.0,
 				w: 1.0,
 				h: 1.0,
 			},
+			bullet_cooldown: 0,
+			damage: 1,
+			entity_type: EntityType::Empty,
+			hp: 1,
 			lifetime: Lifetime::Forever,
+			movement: Movement::None,
+			name: "empty".to_string(),
 			seed: 1.0,
 			timer: 0,
-			bullet_cooldown: 0,
-			angle: 0.0,
+			vel: 0.0,
+			x: 0.0,
+			y: 0.0,
         }
     }
 }
@@ -210,6 +209,18 @@ impl Entity {
 				}
 			},
 
+			EntityType::Boss => {
+				if self.bullet_cooldown <= 0 {
+					self.bullet_cooldown = BOSS_BULLET_COOLDOWN;
+					let angle = state.rng.gen_range(0.0, (std::f64::consts::PI * 2.0) as f32);
+					let bullet_x = ( self.x + self.bounds.x + self.bounds.w / 2.0 ) + self.bounds.w / 2.0 * angle.cos();
+					let bullet_y = ( self.y + self.bounds.y + self.bounds.h / 2.0 ) - self.bounds.w / 2.0 * angle.sin();
+					let eb = state.spawner.spawn_enemy_bullet(bullet_x, bullet_y, angle);
+					state.entities.push(eb);
+				}
+				self.angle += delta_ms as f32 / 1000.0;
+			},
+			
 			// Player bullet code
 			EntityType::PlayerBullet => {
 				self.angle += delta_ms as f32 / 100.0;
