@@ -22,34 +22,21 @@ extern crate rand;
 use ggez::{Context,graphics};
 use self::rand::Rng;
 use game::entity::{Lifetime, Movement, Entity, EntityType};
-use game::{DEFAULT_FONT, BULLET_SPEED, SPLAT_LIFETIME, SHUTOFF_LIFETIME};
+use game::{ENEMY_NAMES, BULLET_SPEED, SPLAT_LIFETIME, SHUTOFF_LIFETIME};
 use std;
 
-const ENEMY_FONT_SIZE: u32 = 12;
 const ENEMY_COOLDOWN: i64 = 1_500;
 const ENEMY_COOLDOWN_BLUESCREEN: i64 = 6_000;
 const POWERUP_COOLDOWN: i64 = 10_000;
-const ENEMY_NAMES: [&str;4] = [
-	"NULL POINTER",
-	"DANGLING REF",
-	"SEGFAULT",
-	"DOUBLE FREE",
-];
 
 pub struct EntitySpawner {
-    pub text: graphics::Text,
-    pub rng: rand::ThreadRng,
+	pub rng: rand::ThreadRng,
     pub cooldowns: std::collections::HashMap<EntityType, i64>,
 }
 
 impl EntitySpawner {
-    pub fn new(ctx: &mut Context) -> EntitySpawner {
-        
-        let font = graphics::Font::new(ctx, DEFAULT_FONT, 48);
-        let text = graphics::Text::new(ctx, "", &font.unwrap()).unwrap();
-
+    pub fn new(ctx: &mut Context) -> EntitySpawner {        
         let mut p = EntitySpawner {
-            text,
             rng: rand::thread_rng(),
             cooldowns: std::collections::HashMap::new(),
         };
@@ -63,7 +50,7 @@ impl EntitySpawner {
 
     pub fn spawn_splat(&self, x: f32, y: f32) -> Entity {
         let splat = Entity {
-            text: self.text.clone(),
+			name: "splat".to_string(),
             entity_type: EntityType::Splat,
             x: x,
             y: y,
@@ -88,7 +75,7 @@ impl EntitySpawner {
 
     pub fn spawn_shutoff(&self, x: f32, y: f32) -> Entity {
         let shutoff = Entity {
-            text: self.text.clone(),
+			name: "shutoff".to_string(),
             entity_type: EntityType::Shutoff,
             x: x,
             y: y,
@@ -113,7 +100,7 @@ impl EntitySpawner {
     // Spawns bullets for the player
     pub fn player_bullet_spawner(&self, x: f32, y: f32) -> Entity {
         let bullet = Entity {
-            text: self.text.clone(),
+			name: "player bullet".to_string(),
             entity_type: EntityType::PlayerBullet,
             x: x,
             y: y,
@@ -140,7 +127,7 @@ impl EntitySpawner {
     // Spawns bullets for the enemy
     pub fn spawn_enemy_bullet(&self, x: f32, y: f32, angle: f32) -> Entity {
         let bullet = Entity {
-            text: self.text.clone(),
+			name: "enemy bullet".to_string(),
             entity_type: EntityType::EnemyBullet,
             x,
             y,
@@ -166,12 +153,9 @@ impl EntitySpawner {
     }
 
     pub fn spawn_enemy(&self, ctx: &mut Context, seed: f64, name: &str, enemy_type: u8) -> Entity {
-        let mut font = graphics::Font::new(ctx, DEFAULT_FONT, ENEMY_FONT_SIZE);
-		let text = graphics::Text::new(ctx, name, &font.unwrap()).unwrap();
-
         // Default entity
 		let mut e = Entity {
-            text: text,
+			name: name.to_string(),
             entity_type: EntityType::Enemy,
             x: 0.0,
             y: 0.0,
@@ -203,8 +187,7 @@ impl EntitySpawner {
         match enemy_type {
 			// Blue screen
             2 => {
-			    font = graphics::Font::new(ctx, DEFAULT_FONT, ENEMY_FONT_SIZE);
-				e.text = graphics::Text::new(ctx, "BSOD", &font.unwrap()).unwrap();        
+				e.name = "BSOD".to_string();
 				e.entity_type = EntityType::EnemyBlueScreen;
                 e.hp = 5; 
                 e.movement = Movement::Generated(
@@ -225,7 +208,7 @@ impl EntitySpawner {
 
     pub fn spawn_powerup(&self) -> Entity {
         let e = Entity {
-            text: self.text.clone(),
+			name: "power bomb".to_string(),
             entity_type: EntityType::Powerup,
             x: 0.0,
             y: 0.0,

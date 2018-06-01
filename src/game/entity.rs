@@ -59,12 +59,12 @@ pub enum Movement {
 }
 
 pub struct Entity {
-	pub text: graphics::Text,
+	pub name: String,
 	pub entity_type: EntityType,
     pub x: f32,
     pub y: f32,
-    pub hp: u8,
-	pub dam: u8,
+    pub hp: i32,
+	pub dam: i32,
     pub vel: f32,
 	pub movement: Movement,
 	pub bounds: graphics::Rect,

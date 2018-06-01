@@ -37,6 +37,7 @@ use self::entity::{Lifetime, EntityType, Movement};
 
 const DEFAULT_FONT: &str = "/font/PressStart2P.ttf";
 const DEFAULT_FONT_SIZE: u32 = 18;
+const ENEMY_FONT_SIZE: u32 = 12;
 const PLAYER_BULLET_COOLDOWN: i64 = 250;
 const BULLET_SPEED: f32 = 400.0;
 const ENEMY_BULLET_COOLDOWN: i64 = 2_000;
@@ -46,6 +47,13 @@ const SPLAT_LIFETIME: i64 = 500;
 const SHUTOFF_LIFETIME: i64 = 1_000;
 
 const SHOW_INPUT_DEBUG: bool = true;
+
+const ENEMY_NAMES: [&str;4] = [
+	"NULL POINTER",
+	"DANGLING REF",
+	"SEGFAULT",
+	"DOUBLE FREE",
+];
 
 //const WINDOW_WIDTH: f32 = 1024.0;
 //const WINDOW_HEIGHT: f32 = 1024.0;
@@ -83,12 +91,13 @@ pub struct MainState {
 	elapsed_ms: u64,
 	delta_ms: u64,
 	textures: std::collections::HashMap<entity::EntityType, graphics::Image>,
+	bgm: audio::Source,
 	rng: rand::ThreadRng,
 	sfx: std::collections::HashMap<&'static str, audio::Source>,
 	quit: bool,
 	game_state: MenuState,
 	life_texture: graphics::Image,
-
+	labels: std::collections::HashMap<String, graphics::Text>,
 }
 
 impl MainState {
@@ -120,11 +129,13 @@ impl MainState {
 			delta_ms: 0,	//Elapsed time since last frame, in milliseconds
 			start_time:  std::time::SystemTime::now(),
 			textures: std::collections::HashMap::new(),
+			bgm: audio::Source::new(ctx, "/sounds/Tejaswi-Hyperbola.ogg")?,
 			rng: rand::thread_rng(),
 			sfx: std::collections::HashMap::new(),
 			quit: false,
 			game_state: MenuState::Menu,
 			life_texture: graphics::Image::new(ctx, "/texture/cpu.png").unwrap(), 
+			labels: std::collections::HashMap::new(),
 		};
 		
 		// Set up textures
@@ -144,9 +155,19 @@ impl MainState {
 		s.sfx.insert("intro", audio::Source::new(ctx, "/sounds/intro.ogg")?);
 		s.sfx.insert("bgm", audio::Source::new(ctx, "/sounds/Tejaswi-Hyperbola.ogg")?);
 		
-		if !DISABLE_SFX {
+        if !DISABLE_SFX {
 			s.sfx["intro"].play().unwrap();
 		}
+        
+		// Generate labels
+		let entity_font = graphics::Font::new(ctx, DEFAULT_FONT, ENEMY_FONT_SIZE)?;
+		for name in ENEMY_NAMES.iter() {
+			let text = graphics::Text::new(ctx, name, &entity_font).unwrap();
+			s.labels.insert(name.to_string(), text);
+		}
+		let bsod_text = graphics::Text::new(ctx, "BSOD", &entity_font).unwrap();
+		s.labels.insert("BSOD".to_string(), bsod_text);
+
         Ok(s)
     }
 }
@@ -164,28 +185,29 @@ pub fn newgame(state: &mut MainState, ctx: &mut Context) {
 	// Create a new player object
 	let player_font = graphics::Font::new(ctx, DEFAULT_FONT, DEFAULT_FONT_SIZE);
 	let player = entity::Entity {
-		text: graphics::Text::new(ctx, "", &player_font.unwrap()).unwrap(),
-		entity_type: entity::EntityType::Player,
-		x: (ctx.conf.window_mode.width as f32 / 2.0) - (state.textures[&entity::EntityType::Player].width() as f32 / 2.0),
-		y: ctx.conf.window_mode.height as f32 - state.textures[&entity::EntityType::Player].height() as f32,
-		hp: 5,
+		name: "Ferris".to_string(),
+        entity_type: entity::EntityType::Player,
+	    x: (ctx.conf.window_mode.width as f32 / 2.0) - (state.textures[&entity::EntityType::Player].width() as f32 / 2.0),
+        y: ctx.conf.window_mode.height as f32 - state.textures[&entity::EntityType::Player].height() as f32,
+        hp: 5,
 		dam: 0,
-		vel: 375.0,
+        vel: 375.0,
 		bounds: graphics::Rect {
-			x: 60.0,
-			y: 40.0,
-			w: 10.0,
-			h: 18.0,
-		},
-		movement: Movement::None,
-		lifetime: Lifetime::Forever,
-		seed: 0.0,
-		timer: 0,
-		bullet_cooldown: PLAYER_BULLET_COOLDOWN,
-		angle: 0.0,
-	};
-	
+        	x: 60.0,
+        	y: 40.0,
+        	w: 10.0,
+        	h: 18.0,
+    	},
+    	movement: Movement::None,
+    	lifetime: Lifetime::Forever,
+    	seed: 0.0,
+    	timer: 0,
+    	bullet_cooldown: PLAYER_BULLET_COOLDOWN,
+    	angle: 0.0,
+    };
+
 	state.entities.push(player);
+
 	if !DISABLE_SFX {
 		state.sfx["intro"].pause();
 		state.sfx["bgm"].play().unwrap();
@@ -209,7 +231,7 @@ fn collision_detection(state: &mut MainState) {
 								if !DISABLE_SFX {
 									state.sfx["hit"].play().unwrap();
 								}
-							}
+                            }
 						},
 						EntityType::EnemyBullet => {
 							if colliding(state, entity_idx, threat_idx) {
@@ -218,7 +240,7 @@ fn collision_detection(state: &mut MainState) {
 								if !DISABLE_SFX {
 									state.sfx["hit"].play().unwrap();
 								}
-							}
+                            }
 						},
 						EntityType::Powerup => {
 							if colliding(state, entity_idx, threat_idx) {
@@ -234,7 +256,7 @@ fn collision_detection(state: &mut MainState) {
 								if !DISABLE_SFX {
 									state.sfx["explode"].play().unwrap();
 								}
-							}
+                            }
 						},
 						_ => (),
 					}
@@ -263,7 +285,7 @@ fn collision_detection(state: &mut MainState) {
 								if !DISABLE_SFX {
 									state.sfx["hit"].play().unwrap();
 								}
-							}
+                            }
 						},
 						_ => (),
 					}
@@ -357,8 +379,6 @@ impl event::EventHandler for MainState {
 					None => (),
 				}
 
-				//self.score_tex.f //graphics::Text::new(_ctx, &format!("Score: {}", self.score), _ctx.default_font)?;
-
 				self.score_text = graphics::Text::new(_ctx, &format!("Score: {}", &self.score.to_string()), &self.score_font).unwrap();
 			
 				// Run thru the list of entities
@@ -388,10 +408,10 @@ impl event::EventHandler for MainState {
 				}
 				
 				let mut dying_entities: Vec<usize> = vec![];
-
-				// Boolean to sound an explosion if necessary
+				
+                // Boolean to sound an explosion if necessary
 				let mut do_explosion_sound = false;
-
+                
 				// Grab the dying entities.
 				for all_idx in 0..self.entities.len() {
 					let e = &mut self.entities[all_idx];
@@ -412,19 +432,19 @@ impl event::EventHandler for MainState {
 						if e.hp <= 0 {
 							do_explosion_sound = true;
 						}
-						
-						// 100% guarentee we can kill off the target by hp alone.
+                        
+                        // 100% guarentee we can kill off the target by hp alone.
 						e.hp = 0;
 						dying_entities.push(all_idx);
 					}
 				
 				}
-				
+
 				// If at least one entity has died from low hp, we should make an explosion sound
 				if do_explosion_sound {
 					self.sfx["explode"].play().unwrap();
 				}
-				
+
 				// Spawn some on_death effects.
 				for i in 0..dying_entities.len() {
 					let x = self.entities[dying_entities[i]].x;
@@ -441,14 +461,16 @@ impl event::EventHandler for MainState {
 				self.entities.retain(|e| {
 					e.hp > 0
 				});
-
-				// Keep bgm playing in a loop
+		
+        		// Keep bgm playing in a loop
 				if !DISABLE_SFX && !self.sfx["bgm"].playing() {
 					self.sfx["bgm"].play().unwrap();
 				}
 			}
 		}
 		update_time(self);
+
+		
 
         Ok(())
     }
@@ -494,7 +516,7 @@ impl event::EventHandler for MainState {
 				}
 				// Draw all entities
 				for e in &mut self.entities {
-					let pos = graphics::Point2::new((e.x as i32 / 2 * 2 ) as f32, (e.y as i32 / 2 * 2) as f32);
+					let pos = graphics::Point2::new((e.x as i32 / 4 * 4 ) as f32, (e.y as i32 / 4 * 4) as f32);
 					let texture = &self.textures[&e.entity_type];
 
 					// Special drawing conditions start
@@ -555,16 +577,16 @@ impl event::EventHandler for MainState {
 						e.entity_type == entity::EntityType::EnemyBlueScreen {
 						let offset = 30;
 						let text_pos = graphics::Point2::new(
-							((e.x as i32 + texture.width() as i32 + offset) / 2 * 2 ) as f32,
+							((e.x as i32 + texture.width() as i32 + offset) / 2 * 2 ) as f32, 
 							((e.y as i32 - offset) / 2 * 2) as f32);
-					
-						//let text_pos = graphics::Point2::new(
+						
+                        //let text_pos = graphics::Point2::new(
 						//	e.x + texture.width() as f32 + offset, 
 						//	e.y - offset);
-						
-						graphics::draw(ctx, &e.text, text_pos, 0.0)?;
+                        
+						graphics::draw(ctx, &self.labels[&e.name], text_pos, 0.0)?;
 						graphics::line(ctx, &[
-							graphics::Point2::new(text_pos.x - 5.0, text_pos.y + e.text.height() as f32),
+							graphics::Point2::new(text_pos.x - 5.0, text_pos.y + self.labels[&e.name].height() as f32),
 							graphics::Point2::new(pos.x + texture.width() as f32, pos.y)], 4.0)?;
 					}
 					
