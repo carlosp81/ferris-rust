@@ -90,6 +90,7 @@ pub struct MainState {
 	spawner: EntitySpawner,	// This creates enemies and bullets
 	start_time: std::time::SystemTime,
 	textures: std::collections::HashMap<entity::EntityType, graphics::Image>,
+	title: graphics::Image,
 }
 
 // This is the object ggez will update with the screen.
@@ -123,6 +124,7 @@ impl MainState {
 			spawner: EntitySpawner::new(ctx),
 			start_time:  std::time::SystemTime::now(),
 			textures: std::collections::HashMap::new(),
+            title: graphics::Image::new(ctx, "/texture/title.png").unwrap(),
 		};
 		
 		// Set up textures
@@ -488,15 +490,18 @@ impl event::EventHandler for MainState {
 				// Draw the background
 				graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, 0.0), 0.0)?;
 				
-				let mut text = graphics::Text::new(ctx, &format!("Press Space to play game"), &self.score_font).unwrap();
-				graphics::draw(ctx, &text, graphics::Point2::new(200.0, 200.0), 0.0)?;
+				// Draw title
+				graphics::draw(ctx, &self.title, graphics::Point2::new(229.0, 100.0), 0.0)?;
+				
+				let mut text = graphics::Text::new(ctx, &format!("- PRESS SPACEBAR -"), &self.score_font).unwrap();
+				graphics::draw(ctx, &text, graphics::Point2::new(400.0, 650.0), 0.0)?;
 
 				text = graphics::Text::new(ctx, &format!("High Scores:"), &self.score_font).unwrap();
-				graphics::draw(ctx, &text, graphics::Point2::new(200.0, 250.0), 0.0)?;
+				graphics::draw(ctx, &text, graphics::Point2::new(500.0, 300.0), 0.0)?;
 
 				for i in 0 .. self.high_scores.len() {
 					self.score_text = graphics::Text::new(ctx, &self.high_scores[i], &self.score_font).unwrap();
-					graphics::draw(ctx, &self.score_text, graphics::Point2::new(200.0, 280.0 + (i as f32) * 30_f32), 0.0)?;
+					graphics::draw(ctx, &self.score_text, graphics::Point2::new(500.0, 330.0 + (i as f32) * 30_f32), 0.0)?;
 				}
 
 
