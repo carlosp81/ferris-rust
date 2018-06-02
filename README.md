@@ -1,4 +1,5 @@
 # Ferris Rustacean's Day Off
+Copyright (C) 2018 River Bartz, Daniel Dupriest, Brandon Goldbeck
 
 Defend programming land from space bug infestation!
 
@@ -29,3 +30,6 @@ To run standalone the file structure must match the following:
 `Space` to shoot, `up`, `down`, `left`, `right` to move.
 
 Grab power bombs to clear the screen.
+
+## License
+This program is licensed under the "MIT License". Please see the file LICENSE in the source distribution of this software for license terms.
