@@ -527,12 +527,6 @@ impl event::EventHandler for MainState {
 								_ => graphics::set_color(ctx, graphics::Color::new(1.0, 1.0, 1.0, 1.0))?,
 							}
 						},
-						entity::EntityType::EnemyBlueScreen => {
-							match e.hp {
-								0 ... 2 => graphics::set_color(ctx, graphics::Color::new(1.0, 0.25, 0.25, 1.0))?,
-								_ => graphics::set_color(ctx, graphics::Color::new(1.0, 1.0, 1.0, 1.0))?,
-							}
-						},
 						entity::EntityType::Splat | entity::EntityType::Shutoff => {
 							let mut alpha : f32 = match e.lifetime {
 								Lifetime::Forever => 1.0_f32,

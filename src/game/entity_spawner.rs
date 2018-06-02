@@ -178,7 +178,7 @@ impl EntitySpawner {
             2 => {
 				e.name = "BSOD".to_string();
 				e.entity_type = EntityType::EnemyBlueScreen;
-                e.hp = 3;
+                e.hp = 2;
                 e.movement = Movement::Generated(
                     |t,r,s|{
                         (
