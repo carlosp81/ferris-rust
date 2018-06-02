@@ -22,7 +22,7 @@ extern crate rand;
 use ggez::{Context,graphics};
 use self::rand::Rng;
 use game::entity::{Lifetime, Movement, Entity, EntityType};
-use game::{ENEMY_NAMES, BULLET_SPEED, SPLAT_LIFETIME, SHUTOFF_LIFETIME};
+use game::{ENEMY_NAMES, BULLET_SPEED, SPLAT_LIFETIME, SHUTOFF_LIFETIME, ENEMY_LIFETIME};
 use std;
 
 const ENEMY_COOLDOWN: i64 = 1_500;
@@ -165,7 +165,7 @@ impl EntitySpawner {
  					)
  				}
 			),
-			lifetime: Lifetime::Milliseconds(100_000),
+			lifetime: Lifetime::Milliseconds(ENEMY_LIFETIME),
 			seed,
 			timer: 0,
 			bullet_cooldown: 0,

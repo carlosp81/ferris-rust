@@ -41,6 +41,7 @@ const DISABLE_SFX: bool = false;
 const DRAW_BOUNDING_BOXES: bool = false;
 const ENEMY_BULLET_COOLDOWN: i64 = 2_000;
 const ENEMY_FONT_SIZE: u32 = 12;
+const ENEMY_LIFETIME: i64 = 100_000;
 const ENEMY_NAMES: [&str;4] = [
 	"NULL POINTER",
 	"DANGLING REF",
@@ -257,9 +258,6 @@ fn handle_collisions(state: &mut MainState) {
 									}
 								}
 								state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
-								if !DISABLE_SFX {
-									state.sfx["explode"].play().unwrap();
-								}
                             }
 						},
 						_ => (),
@@ -572,10 +570,26 @@ impl event::EventHandler for MainState {
 						//	e.x + texture.width() as f32 + offset, 
 						//	e.y - offset);
                         
+						// Dim label after a while
+						match e.lifetime {
+							Lifetime::Forever => (),
+							Lifetime::Milliseconds(r) => {
+								let fraction_of_life = ( ENEMY_LIFETIME as f32 - r as f32 ) / ENEMY_LIFETIME as f32;
+								let mut alpha = 1.0 - fraction_of_life * 20.0;
+								if alpha < 0.0 {
+									alpha = 0.0;
+								}
+								graphics::set_color(ctx, graphics::Color::new(1.0, 1.0, 1.0, alpha))?;
+							},
+						};	
+						
 						graphics::draw(ctx, &self.labels[&e.name], text_pos, 0.0)?;
 						graphics::line(ctx, &[
 							graphics::Point2::new(text_pos.x - 5.0, text_pos.y + self.labels[&e.name].height() as f32),
 							graphics::Point2::new(pos.x + texture.width() as f32, pos.y)], 4.0)?;
+						
+						// Reset color
+						graphics::set_color(ctx, graphics::Color::new(1.0, 1.0, 1.0, 1.0))?;
 					}
 					
 					
