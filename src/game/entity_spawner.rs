@@ -148,7 +148,7 @@ impl EntitySpawner {
             entity_type: EntityType::Enemy,
             x: 0.0,
             y: 0.0,
-            hp: 3,
+            hp: 1,
             damage: 1,
             vel: 0.0,
         	bounds: graphics::Rect {
@@ -178,7 +178,7 @@ impl EntitySpawner {
             2 => {
 				e.name = "BSOD".to_string();
 				e.entity_type = EntityType::EnemyBlueScreen;
-                e.hp = 5; 
+                e.hp = 3;
                 e.movement = Movement::Generated(
                     |t,r,s|{
                         (
@@ -281,7 +281,7 @@ impl EntitySpawner {
                 // Create enemy.
                 let mut entity = self.spawn_enemy(seed, name, 2);
                 entity.x = self.rng.gen_range(0.0, self.screen_width as f32);
-                entity.y = -45.0;
+                entity.y = -70.0;
                 return Some(entity);
             },
 			EntityType::Boss => {

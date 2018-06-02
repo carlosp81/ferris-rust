@@ -78,7 +78,7 @@ pub struct MainState {
 	elapsed_ms: u64,
     entities: Vec<entity::Entity>,
 	game_state: GameMode,
-	high_scores: Vec<u32>,
+	high_scores: Vec<String>,
 	input: Input,
 	labels: std::collections::HashMap<String, graphics::Text>,
 	quit: bool,
@@ -369,7 +369,9 @@ impl event::EventHandler for MainState {
 				// If the player died, gameover!
 				if self.entities.len() == 0 || self.entities[0].entity_type != EntityType::Player {
 					self.game_state = GameMode::Menu;
-					self.high_scores.push(self.score);
+					let user = std::env::var("USERNAME").unwrap();
+					let text = self.score.to_string() + " " + &user;
+					self.high_scores.push(text);
 				}
 
 				match self.spawner.update(self.delta_ms) {
@@ -478,7 +480,8 @@ impl event::EventHandler for MainState {
         Ok(())
     }
     fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
-        graphics::clear(ctx);
+        graphics::set_background_color(ctx, graphics::Color::new(0.0, 0.0, 0.0, 1.0));
+		graphics::clear(ctx);
 
 		match self.game_state {
 			GameMode::Menu => {
@@ -492,7 +495,7 @@ impl event::EventHandler for MainState {
 				graphics::draw(ctx, &text, graphics::Point2::new(200.0, 250.0), 0.0)?;
 
 				for i in 0 .. self.high_scores.len() {
-					self.score_text = graphics::Text::new(ctx, &format!("Score: {}", self.high_scores[i]), &self.score_font).unwrap();
+					self.score_text = graphics::Text::new(ctx, &self.high_scores[i], &self.score_font).unwrap();
 					graphics::draw(ctx, &self.score_text, graphics::Point2::new(200.0, 280.0 + (i as f32) * 30_f32), 0.0)?;
 				}
 
@@ -502,11 +505,11 @@ impl event::EventHandler for MainState {
 				let _window_width = ctx.conf.window_mode.width;
 				let _window_height = ctx.conf.window_mode.height;
 
-				// Draw the 2 background copies staggered according to elapsed_ms
+				// Draw two layers of two background copies staggered according to elapsed_ms
 				let background_y = ( (self.elapsed_ms/40%1920) as i32 / 2 * 2 ) as f32;
 				graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, background_y), 0.0)?;
 				graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, -1920.0 + background_y), 0.0)?;
-
+				
 				// Draw all entities
 				for e in &mut self.entities {
 					let pos = graphics::Point2::new((e.x as i32 / 4 * 4 ) as f32, (e.y as i32 / 4 * 4) as f32);
@@ -514,29 +517,16 @@ impl event::EventHandler for MainState {
 
 					// Special drawing conditions start
 					match e.entity_type {
-						entity::EntityType::Enemy => {
+						entity::EntityType::Boss => {
 							match e.hp {
-								1 => graphics::set_color(ctx, graphics::Color::new(1.0, 0.1, 0.0, 1.0))?,
-								2 => graphics::set_color(ctx, graphics::Color::new(0.9, 0.5, 0.0, 1.0))?,
-								3 => graphics::set_color(ctx, graphics::Color::new(0.0, 1.0, 0.0, 1.0))?,
-								_ => (),
+								0 ... 5 => graphics::set_color(ctx, graphics::Color::new(1.0, 0.25, 0.25, 1.0))?,
+								5 ... 10 => graphics::set_color(ctx, graphics::Color::new(1.0, 0.5, 0.5, 1.0))?,
+								_ => graphics::set_color(ctx, graphics::Color::new(1.0, 1.0, 1.0, 1.0))?,
 							}
 						},
 						entity::EntityType::EnemyBlueScreen => {
 							match e.hp {
-								1 => graphics::set_color(ctx, graphics::Color::new(0.5, 0.5, 1.0, 1.0))?,
-								2 => graphics::set_color(ctx, graphics::Color::new(0.7, 0.7, 1.0, 1.0))?,
-								3 => graphics::set_color(ctx, graphics::Color::new(0.8, 0.8, 1.0, 1.0))?,
-								4 => graphics::set_color(ctx, graphics::Color::new(0.9, 0.9, 1.0, 1.0))?,
-								_ => (),
-							}
-						},
-						entity::EntityType::Player => {
-							match e.hp {
-								1 => graphics::set_color(ctx, graphics::Color::new(0.4, 0.0, 0.0, 0.9))?,
-								2 => graphics::set_color(ctx, graphics::Color::new(0.6, 0.1, 0.1, 0.95))?,
-								3 => graphics::set_color(ctx, graphics::Color::new(1.0, 0.7, 0.7, 1.0))?,
-								4 => graphics::set_color(ctx, graphics::Color::new(1.0, 0.9, 0.9, 1.0))?,						
+								0 ... 2 => graphics::set_color(ctx, graphics::Color::new(1.0, 0.25, 0.25, 1.0))?,
 								_ => graphics::set_color(ctx, graphics::Color::new(1.0, 1.0, 1.0, 1.0))?,
 							}
 						},
