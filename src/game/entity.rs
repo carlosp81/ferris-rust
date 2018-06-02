@@ -23,8 +23,8 @@ extern crate rand;
 use std;
 use ggez::graphics;
 use ggez::Context;
-use game::{MainState, BOSS_BULLET_COOLDOWN, ENEMY_BULLET_COOLDOWN};
-use game::rand::Rng;
+use game::{MainState, BOSS_BULLET_NUMBER, BOSS_BULLET_COOLDOWN, ENEMY_BULLET_COOLDOWN};
+//use game::rand::Rng;
 
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum EntityType {
@@ -212,13 +212,17 @@ impl Entity {
 			EntityType::Boss => {
 				if self.bullet_cooldown <= 0 {
 					self.bullet_cooldown = BOSS_BULLET_COOLDOWN;
-					let angle = state.rng.gen_range(0.0, (std::f64::consts::PI * 2.0) as f32);
-					let bullet_x = ( self.x + self.bounds.x + self.bounds.w / 2.0 ) + self.bounds.w / 2.0 * angle.cos();
-					let bullet_y = ( self.y + self.bounds.y + self.bounds.h / 2.0 ) - self.bounds.w / 2.0 * angle.sin();
-					let eb = state.spawner.spawn_enemy_bullet(bullet_x, bullet_y, angle);
-					state.entities.push(eb);
+					
+					let increment = (std::f64::consts::PI * 2.0 / BOSS_BULLET_NUMBER as f64) as f32;
+					for i in 0..BOSS_BULLET_NUMBER {
+						let angle = self.angle + increment * i as f32;
+						let bullet_x = ( self.x + self.bounds.x + self.bounds.w / 2.0 ) + (self.bounds.x * 2.0 + self.bounds.w) / 2.0 * angle.cos();
+						let bullet_y = ( self.y + self.bounds.y + self.bounds.h / 2.0 ) - (self.bounds.x * 2.0 + self.bounds.w) / 2.0 * angle.sin();
+						let eb = state.spawner.spawn_enemy_bullet(bullet_x, bullet_y, angle);
+						state.entities.push(eb);
+					}
 				}
-				self.angle += delta_ms as f32 / 1000.0;
+				self.angle += delta_ms as f32 / 600.0;
 			},
 			
 			// Player bullet code

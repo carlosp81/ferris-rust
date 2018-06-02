@@ -32,7 +32,8 @@ use self::entity_spawner::EntitySpawner;
 use self::entity::{Lifetime, EntityType, Movement};
 
 // Constants
-const BOSS_BULLET_COOLDOWN: i64 = 50;
+const BOSS_BULLET_COOLDOWN: i64 = 150;
+const BOSS_BULLET_NUMBER: i64 = 3;
 const BULLET_SPEED: f32 = 400.0;
 const DEFAULT_FONT: &str = "/font/PressStart2P.ttf";
 const DEFAULT_FONT_SIZE: u32 = 20;
@@ -46,10 +47,14 @@ const ENEMY_NAMES: [&str;4] = [
 	"SEGFAULT",
 	"DOUBLE FREE",
 ];
+const GOD_MODE: bool = false;
 const PLAYER_BULLET_COOLDOWN: i64 = 250;
 const SHOW_INPUT_DEBUG: bool = false;
 const SHUTOFF_LIFETIME: i64 = 500;
 const SPLAT_LIFETIME: i64 = 500;
+
+static mut MAX_ENTITIES: i64 = 0;
+
 
 // Struct to represent player controls
 struct Input {
@@ -209,7 +214,9 @@ fn handle_collisions(state: &mut MainState) {
 					match state.entities[threat_idx].entity_type {
 						EntityType::Enemy | EntityType::EnemyBlueScreen => {
 							if colliding(state, entity_idx, threat_idx) {
-								state.entities[entity_idx].hp -= state.entities[threat_idx].damage;
+								if !GOD_MODE {
+									state.entities[entity_idx].hp -= state.entities[threat_idx].damage;
+								}
 								state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
 								if !DISABLE_SFX {
 									state.sfx["hit"].play().unwrap();
@@ -218,7 +225,9 @@ fn handle_collisions(state: &mut MainState) {
 						},
 						EntityType::Boss => {
 							if colliding(state, entity_idx, threat_idx) {
-								state.entities[entity_idx].hp -= state.entities[threat_idx].damage;
+								if !GOD_MODE {
+									state.entities[entity_idx].hp -= state.entities[threat_idx].damage;
+								}
 								if !DISABLE_SFX {
 									state.sfx["hit"].play().unwrap();
 								}
@@ -226,7 +235,9 @@ fn handle_collisions(state: &mut MainState) {
 						},
 						EntityType::EnemyBullet => {
 							if colliding(state, entity_idx, threat_idx) {
-								state.entities[entity_idx].hp -= state.entities[threat_idx].damage;
+								if !GOD_MODE {
+									state.entities[entity_idx].hp -= state.entities[threat_idx].damage;
+								}
 								state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
 								if !DISABLE_SFX {
 									state.sfx["hit"].play().unwrap();
@@ -334,6 +345,15 @@ impl event::EventHandler for MainState {
 			_ctx.quit()?;
 		}
 
+		// Output max entities for debugging
+		let number = self.entities.len() as i64;
+		unsafe {
+			if number > MAX_ENTITIES {
+				MAX_ENTITIES = number;
+				//println!("Max entities = {}", number);
+			}
+		}
+			
 		match self.game_state {
 			GameMode::Menu => {
 				if self.input.shoot {
@@ -432,6 +452,7 @@ impl event::EventHandler for MainState {
 					let x = self.entities[dying_entities[i]].x;
 					let y = self.entities[dying_entities[i]].y;
 					match self.entities[dying_entities[i]].entity_type {
+						entity::EntityType::Boss => self.entities.push(self.spawner.spawn_splat(x, y)),
 						entity::EntityType::Enemy => self.entities.push(self.spawner.spawn_splat(x, y)),
 						entity::EntityType::EnemyBlueScreen => self.entities.push(self.spawner.spawn_shutoff(x, y)),
 						_ => (), 
@@ -535,10 +556,10 @@ impl event::EventHandler for MainState {
 					}  
 					else {
 						let half_width = texture.width() as f64 / 2.0;
-						let angle = e.angle as f64 + (5.0 * std::f64::consts::PI / 4.0);
+						let angle = -e.angle as f64 + (5.0 * std::f64::consts::PI / 4.0);
 						let x = (half_width + half_width * (2.0_f64).sqrt() * angle.cos()) as f32;
 						let y = (half_width + half_width * (2.0_f64).sqrt() * angle.sin()) as f32;
-						graphics::draw(ctx, texture, graphics::Point2::new(pos.x + x, pos.y + y), e.angle)?;
+						graphics::draw(ctx, texture, graphics::Point2::new(pos.x + x, pos.y + y), -e.angle)?;
 					}
 				
 					// End drawing conditions: Reset drawing conditions

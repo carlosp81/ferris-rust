@@ -144,7 +144,7 @@ impl EntitySpawner {
             seed: 0.0,
             timer: 0,
             bullet_cooldown: 0,
-            angle: 0.0,
+            angle: angle + (std::f64::consts::PI / 2.0) as f32,
         };
         //state.entities.push(bullet);
         bullet
@@ -276,7 +276,7 @@ impl EntitySpawner {
                 // Create enemy.
                 let mut entity = self.spawn_enemy(seed, name, 1);
                 entity.x = self.rng.gen_range(0.0, self.screen_width as f32);
-                entity.y = -45.0;
+                entity.y = -70.0;
                 return Some(entity);
             },
             EntityType::EnemyBlueScreen => {
