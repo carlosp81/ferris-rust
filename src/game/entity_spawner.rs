@@ -124,29 +124,20 @@ impl EntitySpawner {
 
     // Spawns bullets for the enemy
     pub fn spawn_enemy_bullet(&self, x: f32, y: f32, angle: f32) -> Entity {
-        let bullet = Entity {
-			name: "enemy bullet".to_string(),
-            entity_type: EntityType::EnemyBullet,
-            x,
-            y,
-            hp: 1,
-            damage: 1,
-            vel: 1000.0,
-            bounds: graphics::Rect {
-                x: 0.0,
-                y: 0.0,
-                w: 25.0,
-                h: 25.0,
-            },
-            //movement: Movement::Linear(0.0, 7_000.0),
-            movement: Movement::Linear(angle.cos() * BULLET_SPEED, -angle.sin() * BULLET_SPEED),
-            lifetime: Lifetime::Milliseconds(8_000),
-            seed: 0.0,
-            timer: 0,
-            bullet_cooldown: 0,
-            angle: angle + (std::f64::consts::PI / 2.0) as f32,
+        let mut bullet = Entity::default();
+        bullet.x = x;
+        bullet.y = y;
+		bullet.bounds = graphics::Rect{
+		    x: 0.0,
+            y: 0.0,
+            w: 25.0,
+            h: 25.0,
         };
-        //state.entities.push(bullet);
+		bullet.movement = Movement::Linear(angle.cos() * BULLET_SPEED, -angle.sin() * BULLET_SPEED);
+        bullet.lifetime = Lifetime::Milliseconds(8_000);
+		bullet.entity_type = EntityType::EnemyBullet;
+		bullet.name = "player_bullet".to_string();
+		
         bullet
     }
 
