@@ -1,4 +1,4 @@
-# Ferris Rustacean's Day Off
+# Ferris
 Copyright (C) 2018 River Bartz, Daniel Dupriest, Brandon Goldbeck
 
 Defend programming land from space bug infestation!
