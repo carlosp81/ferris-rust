@@ -182,8 +182,10 @@ impl Entity {
 			EntityType::Enemy => {
 				if self.bullet_cooldown <= 0 {
 					self.bullet_cooldown = ENEMY_BULLET_COOLDOWN;
-					//enemy_bullet_spawner(self, self.x, self.y);
-					let eb = state.spawner.spawn_enemy_bullet(self.x, self.y, (3.0 * std::f64::consts::PI / 2.0) as f32);
+					let texture = &state.textures[&EntityType::Enemy];
+					let bullet_x = self.x + texture.width() as f32 / 2.0 - 18.0;
+					let bullet_y = self.y + texture.height() as f32;
+					let eb = state.spawner.spawn_enemy_bullet(bullet_x, bullet_y, (3.0 * std::f64::consts::PI / 2.0) as f32);
 					state.entities.push(eb);
 
 				}
@@ -192,17 +194,19 @@ impl Entity {
 			EntityType::EnemyBlueScreen => {
 				if self.bullet_cooldown <= 0 {
 					self.bullet_cooldown = ENEMY_BULLET_COOLDOWN;
-					//enemy_bullet_spawner(self, self.x, self.y);
+					let texture = &state.textures[&EntityType::EnemyBlueScreen];
+					let bullet_x = self.x + texture.width() as f32 / 2.0 - 18.0;
+					let bullet_y = self.y + texture.height() as f32;
 					{
-						let eb = state.spawner.spawn_enemy_bullet(self.x, self.y, (5.0 * std::f64::consts::PI / 4.0) as f32);
+						let eb = state.spawner.spawn_enemy_bullet(bullet_x, bullet_y, (5.0 * std::f64::consts::PI / 4.0) as f32);
 						state.entities.push(eb);
 					}
 					{
-						let eb = state.spawner.spawn_enemy_bullet(self.x, self.y, (3.0 * std::f64::consts::PI / 2.0) as f32);
+						let eb = state.spawner.spawn_enemy_bullet(bullet_x, bullet_y, (3.0 * std::f64::consts::PI / 2.0) as f32);
 						state.entities.push(eb);
 					}
 					{
-						let eb = state.spawner.spawn_enemy_bullet(self.x, self.y, (7.0 * std::f64::consts::PI / 4.0) as f32);
+						let eb = state.spawner.spawn_enemy_bullet(bullet_x, bullet_y, (7.0 * std::f64::consts::PI / 4.0) as f32);
 						state.entities.push(eb);
 					}
 
