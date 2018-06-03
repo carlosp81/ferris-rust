@@ -185,7 +185,7 @@ impl Entity {
 				if self.bullet_cooldown <= 0 {
 					shots_fired = true;
 					self.bullet_cooldown = ENEMY_BULLET_COOLDOWN;
-					let texture = &state.textures[&EntityType::Enemy];
+					let texture = &state.textures[&EntityType::Enemy][0];
 					let bullet_x = self.x + texture.width() as f32 / 2.0 - 18.0;
 					let bullet_y = self.y + texture.height() as f32;
 					let eb = state.spawner.spawn_enemy_bullet(bullet_x, bullet_y, (3.0 * std::f64::consts::PI / 2.0) as f32);
@@ -197,7 +197,7 @@ impl Entity {
 				if self.bullet_cooldown <= 0 {
 					shots_fired = true;
 					self.bullet_cooldown = ENEMY_BULLET_COOLDOWN;
-					let texture = &state.textures[&EntityType::EnemyBlueScreen];
+					let texture = &state.textures[&EntityType::EnemyBlueScreen][0];
 					let bullet_x = self.x + texture.width() as f32 / 2.0 - 18.0;
 					let bullet_y = self.y + texture.height() as f32;
 					{
