@@ -5,6 +5,10 @@ Defend programming land from space bug infestation!
 
 ## Installation
 
+The game requires Visual C++ Runtime 2015, which can be downloaded from Microsoft at https://www.microsoft.com/en-us/download/details.aspx?id=52685.
+
+### Compiling from source
+
 1. Clone the project using git.
 
 `git clone https://github.com/bgoldbeck/cs410p-project.git`
