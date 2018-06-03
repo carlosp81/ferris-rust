@@ -140,11 +140,17 @@ impl MainState {
 			graphics::Image::new(ctx, "/texture/crab3.png").unwrap(),
 			graphics::Image::new(ctx, "/texture/crab0.png").unwrap(),
 			] );
-		s.textures.insert(entity::EntityType::Enemy, vec![graphics::Image::new(ctx, "/texture/enemy.png").unwrap()] );
+		s.textures.insert(entity::EntityType::Enemy, vec![
+			graphics::Image::new(ctx, "/texture/enemy0.png").unwrap(),
+			graphics::Image::new(ctx, "/texture/enemy1.png").unwrap(),
+		] );
 		s.textures.insert(entity::EntityType::EnemyBlueScreen, vec![graphics::Image::new(ctx, "/texture/enemybluescreen.png").unwrap()] );
 		s.textures.insert(entity::EntityType::PlayerBullet, vec![graphics::Image::new(ctx, "/texture/player_bullet.png").unwrap()] );
 		s.textures.insert(entity::EntityType::EnemyBullet, vec![graphics::Image::new(ctx, "/texture/enemy_bullet.png").unwrap()] );
-		s.textures.insert(entity::EntityType::Powerup, vec![graphics::Image::new(ctx, "/texture/powerup.png").unwrap()] );
+		s.textures.insert(entity::EntityType::Powerup, vec![
+			graphics::Image::new(ctx, "/texture/powerup0.png").unwrap(),
+			graphics::Image::new(ctx, "/texture/powerup1.png").unwrap(),
+		] );
 		s.textures.insert(entity::EntityType::Splat, vec![graphics::Image::new(ctx, "/texture/splat.png").unwrap()] );
 		s.textures.insert(entity::EntityType::Shutoff, vec![graphics::Image::new(ctx, "/texture/shutoff.png").unwrap()] );
 		s.textures.insert(entity::EntityType::Life, vec![graphics::Image::new(ctx, "/texture/cpu.png").unwrap()] ); 
