@@ -32,6 +32,7 @@ use self::entity_spawner::EntitySpawner;
 use self::entity::{Lifetime, EntityType, Movement};
 
 // Constants
+const ANIMATION_FRAMERATE: f64 = 2.283 * 2.0;
 const BOSS_BULLET_COOLDOWN: i64 = 150;
 const BOSS_BULLET_NUMBER: i64 = 3;
 const BULLET_SPEED: f32 = 400.0;
@@ -90,7 +91,7 @@ pub struct MainState {
 	sfx: std::collections::HashMap<&'static str, audio::Source>,
 	spawner: EntitySpawner,	// This creates enemies and bullets
 	start_time: std::time::SystemTime,
-	textures: std::collections::HashMap<entity::EntityType, graphics::Image>,
+	textures: std::collections::HashMap<entity::EntityType, Vec<graphics::Image>>,
 	title: graphics::Image,
 }
 
@@ -129,16 +130,25 @@ impl MainState {
 		};
 		
 		// Set up textures
-		s.textures.insert(entity::EntityType::Player, graphics::Image::new(ctx, "/texture/crab.png").unwrap() );
-		s.textures.insert(entity::EntityType::Enemy, graphics::Image::new(ctx, "/texture/enemy.png").unwrap() );
-		s.textures.insert(entity::EntityType::EnemyBlueScreen, graphics::Image::new(ctx, "/texture/enemybluescreen.png").unwrap() );
-		s.textures.insert(entity::EntityType::PlayerBullet, graphics::Image::new(ctx, "/texture/player_bullet.png").unwrap() );
-		s.textures.insert(entity::EntityType::EnemyBullet, graphics::Image::new(ctx, "/texture/enemy_bullet.png").unwrap() );
-		s.textures.insert(entity::EntityType::Powerup, graphics::Image::new(ctx, "/texture/powerup.png").unwrap() );
-		s.textures.insert(entity::EntityType::Splat, graphics::Image::new(ctx, "/texture/splat.png").unwrap() );
-		s.textures.insert(entity::EntityType::Shutoff, graphics::Image::new(ctx, "/texture/shutoff.png").unwrap() );
-		s.textures.insert(entity::EntityType::Life, graphics::Image::new(ctx, "/texture/cpu.png").unwrap()); 
-		s.textures.insert(entity::EntityType::Boss, graphics::Image::new(ctx, "/texture/boss.png").unwrap());
+		s.textures.insert(entity::EntityType::Player, vec![
+			graphics::Image::new(ctx, "/texture/crab1.png").unwrap(),
+			graphics::Image::new(ctx, "/texture/crab0.png").unwrap(),
+			graphics::Image::new(ctx, "/texture/crab2.png").unwrap(),
+			graphics::Image::new(ctx, "/texture/crab0.png").unwrap(),
+			graphics::Image::new(ctx, "/texture/crab1.png").unwrap(),
+			graphics::Image::new(ctx, "/texture/crab0.png").unwrap(),
+			graphics::Image::new(ctx, "/texture/crab3.png").unwrap(),
+			graphics::Image::new(ctx, "/texture/crab0.png").unwrap(),
+			] );
+		s.textures.insert(entity::EntityType::Enemy, vec![graphics::Image::new(ctx, "/texture/enemy.png").unwrap()] );
+		s.textures.insert(entity::EntityType::EnemyBlueScreen, vec![graphics::Image::new(ctx, "/texture/enemybluescreen.png").unwrap()] );
+		s.textures.insert(entity::EntityType::PlayerBullet, vec![graphics::Image::new(ctx, "/texture/player_bullet.png").unwrap()] );
+		s.textures.insert(entity::EntityType::EnemyBullet, vec![graphics::Image::new(ctx, "/texture/enemy_bullet.png").unwrap()] );
+		s.textures.insert(entity::EntityType::Powerup, vec![graphics::Image::new(ctx, "/texture/powerup.png").unwrap()] );
+		s.textures.insert(entity::EntityType::Splat, vec![graphics::Image::new(ctx, "/texture/splat.png").unwrap()] );
+		s.textures.insert(entity::EntityType::Shutoff, vec![graphics::Image::new(ctx, "/texture/shutoff.png").unwrap()] );
+		s.textures.insert(entity::EntityType::Life, vec![graphics::Image::new(ctx, "/texture/cpu.png").unwrap()] ); 
+		s.textures.insert(entity::EntityType::Boss, vec![graphics::Image::new(ctx, "/texture/boss.png").unwrap()] );
 		
 		// Set up music and sound effects
 		s.sfx.insert("player_shot", audio::Source::new(ctx, "/sounds/player_shot.wav")?);
@@ -193,8 +203,8 @@ pub fn new_game(state: &mut MainState, ctx: &mut Context) {
         seed: 0.0,
     	timer: 0,
     	vel: 375.0,
-		x: (ctx.conf.window_mode.width as f32 / 2.0) - (state.textures[&entity::EntityType::Player].width() as f32 / 2.0),
-        y: ctx.conf.window_mode.height as f32 - state.textures[&entity::EntityType::Player].height() as f32,
+		x: (ctx.conf.window_mode.width as f32 / 2.0) - (state.textures[&entity::EntityType::Player][0].width() as f32 / 2.0),
+        y: ctx.conf.window_mode.height as f32 - state.textures[&entity::EntityType::Player][0].height() as f32,
     };
 
 	state.entities.push(player);
@@ -417,8 +427,8 @@ impl event::EventHandler for MainState {
 						// Reset cooldown.
 						self.entities[0].bullet_cooldown = PLAYER_BULLET_COOLDOWN;
 						// Spawn the bullet.
-						let x = self.entities[0].x + (self.textures[&entity::EntityType::Player].width() as f32 / 2.0) - (self.textures[&entity::EntityType::PlayerBullet].width() as f32 / 2.0);
-						let y = self.entities[0].y - (self.textures[&entity::EntityType::PlayerBullet].height() as f32 / 2.0);
+						let x = self.entities[0].x + (self.textures[&entity::EntityType::Player][0].width() as f32 / 2.0) - (self.textures[&entity::EntityType::PlayerBullet][0].width() as f32 / 2.0);
+						let y = self.entities[0].y - (self.textures[&entity::EntityType::PlayerBullet][0].height() as f32 / 2.0);
 						let pb = self.spawner.player_bullet_spawner(x, y);
 						self.entities.push(pb);
 						if !DISABLE_SFX {
@@ -542,7 +552,16 @@ impl event::EventHandler for MainState {
 				// Draw all entities
 				for e in &mut self.entities {
 					let pos = graphics::Point2::new((e.x as i32 / 4 * 4 ) as f32, (e.y as i32 / 4 * 4) as f32);
-					let texture = &self.textures[&e.entity_type];
+					
+					// If the texure is animated, grab the right frame, otherwise grab frame 0.
+					let total_frames = self.textures[&e.entity_type].len();
+					let texture = match total_frames {
+						1 => &self.textures[&e.entity_type][0],
+						_ => {
+							let frame = ( self.elapsed_ms as f64 / 1000.0 * ANIMATION_FRAMERATE) as usize % total_frames;
+							&self.textures[&e.entity_type][frame]
+						},
+					};
 
 					// Special drawing conditions start
 					match e.entity_type {
@@ -633,8 +652,8 @@ impl event::EventHandler for MainState {
 				for i in 0..player.hp + 1 {
 					graphics::draw(
 						ctx,
-						&self.textures[&EntityType::Life],
-						graphics::Point2::new(_window_width as f32 - (self.textures[&EntityType::Life].width() as f32 * 1.25 * i as f32), 0.0), 0.0)?;
+						&self.textures[&EntityType::Life][0],
+						graphics::Point2::new(_window_width as f32 - (self.textures[&EntityType::Life][0].width() as f32 * 1.25 * i as f32), 0.0), 0.0)?;
 				}
 				
 				// Draw player score
