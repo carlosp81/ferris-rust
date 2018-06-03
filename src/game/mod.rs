@@ -200,7 +200,11 @@ pub fn new_game(state: &mut MainState, ctx: &mut Context) {
 
 	// Stop intro music and begin bgm
 	if !DISABLE_SFX {
-		state.sfx["intro"].pause();
+		state.sfx["intro"].stop();
+		// The `.stop()` method for a ggez audio source doesn't seem to work
+		// correctly, so this is an ugly method of stopping and restarting the
+		// audio. Reload from disk and overwrite existing. Eeewww!
+		*state.sfx.get_mut("bgm").unwrap() = audio::Source::new(ctx, "/sounds/Tejaswi-Hyperbola.ogg").expect("Could not load bgm");
 		state.sfx["bgm"].play().unwrap();
 	}
 }
@@ -372,6 +376,19 @@ impl event::EventHandler for MainState {
 					let user = std::env::var("USERNAME").unwrap();
 					let text = self.score.to_string() + " " + &user;
 					self.high_scores.push(text);
+					// Reset music
+					let pause = std::time::Duration::from_millis(500);
+					std::thread::sleep(pause);
+					
+					// Stop bgm and replay intro music
+					if !DISABLE_SFX {
+						self.sfx["bgm"].stop();
+						// The `.stop()` method for a ggez audio source doesn't seem to work
+						// correctly, so this is an ugly method of stopping and restarting the
+						// audio. Reload from disk and overwrite existing. Eeewww!
+						*self.sfx.get_mut("intro").unwrap() = audio::Source::new(_ctx, "/sounds/intro.ogg").expect("Could not load intro music");
+						self.sfx["intro"].play().unwrap();
+					}
 				}
 
 				match self.spawner.update(self.delta_ms) {
@@ -446,6 +463,10 @@ impl event::EventHandler for MainState {
 
 				// If at least one entity has died from low hp, we should make an explosion sound
 				if do_explosion_sound && !DISABLE_SFX {
+					// The `.stop()` method for a ggez audio source doesn't seem to work
+					// correctly, so this is an ugly method of stopping and restarting the
+					// audio. Reload from disk and overwrite existing. Eeewww!
+					*self.sfx.get_mut("explode").unwrap() = audio::Source::new(_ctx, "/sounds/explode.wav").expect("Could not load explode.wav");
 					self.sfx["explode"].play().unwrap();
 				}
 
