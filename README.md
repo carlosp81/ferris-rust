@@ -39,5 +39,9 @@ To run standalone the file structure must match the following:
 
 Grab power bombs to clear the screen.
 
+## Troubleshooting
+
+If your executable crashes, your video card may not support the necessary shaders for SDL2. You might try editing `conf.toml` and changing the window mode line to read `fullscreen_type = "Desktop"`.
+
 ## License
 This program is licensed under the "MIT License". Please see the file LICENSE in the source distribution of this software for license terms.
