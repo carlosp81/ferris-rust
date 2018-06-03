@@ -422,7 +422,9 @@ impl event::EventHandler for MainState {
 						let pb = self.spawner.player_bullet_spawner(x, y);
 						self.entities.push(pb);
 						if !DISABLE_SFX {
-							self.sfx["player_shot"].play()?;
+							// Nasty means of playing enemy shot sounds quickly on the same channel. 
+							*self.sfx.get_mut("player_shot").unwrap() = audio::Source::new(ctx, "/sounds/player_shot.wav").expect("Could not load enemy shot");
+							self.sfx["player_shot"].play().unwrap();
 						}
 					}
 				}
