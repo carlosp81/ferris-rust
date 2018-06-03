@@ -5,7 +5,11 @@ Defend programming land from space bug infestation!
 
 ## Installation
 
-The game requires Visual C++ Runtime 2015, which can be downloaded from Microsoft at https://www.microsoft.com/en-us/download/details.aspx?id=52685.
+The game requires Visual C++ Runtime 2015, which can be downloaded from Microsoft at https://www.microsoft.com/en-us/download/details.aspx?id=52685 if you don't have it installed already.
+
+### Win64 binary
+
+The latest binary version is available from at https://github.com/bgoldbeck/ferris-rust/releases.
 
 ### Compiling from source
 
@@ -17,7 +21,7 @@ The game requires Visual C++ Runtime 2015, which can be downloaded from Microsof
 
 `cargo run --release`
 
-### Running standalone
+#### File/directory layout
 
 To run standalone the file structure must match the following:
 
@@ -29,7 +33,7 @@ To run standalone the file structure must match the following:
 - ferris.exe
 - SDL2.dll
 
-## Instructions
+## How to Play
 
 `Space` to shoot, `up`, `down`, `left`, `right` to move.
 
