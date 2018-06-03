@@ -146,7 +146,8 @@ impl MainState {
 		s.sfx.insert("explode", audio::Source::new(ctx, "/sounds/explode.wav")?);
 		s.sfx.insert("intro", audio::Source::new(ctx, "/sounds/intro.ogg")?);
 		s.sfx.insert("bgm", audio::Source::new(ctx, "/sounds/Tejaswi-Hyperbola.ogg")?);
-		        
+		s.sfx.insert("enemy_shot", audio::Source::new(ctx, "/sounds/enemy_shot.wav")?);
+
 		// Generate labels
 		let entity_font = graphics::Font::new(ctx, DEFAULT_FONT, ENEMY_FONT_SIZE)?;
 		for name in ENEMY_NAMES.iter() {
@@ -344,9 +345,9 @@ fn update_time(state: &mut MainState) {
 // The `EventHandler` trait also contains callbacks for event handling
 // that you can override if you wish, but the defaults are fine.
 impl event::EventHandler for MainState {
-    fn update(&mut self, _ctx: &mut Context) -> GameResult<()> {
+    fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
         if self.quit {
-			_ctx.quit()?;
+			ctx.quit()?;
 		}
 
 		// Output max entities for debugging
@@ -362,7 +363,7 @@ impl event::EventHandler for MainState {
 			GameMode::Menu => {
 				if self.input.shoot {
 					self.game_state = GameMode::Game;
-					new_game(self, _ctx);
+					new_game(self, ctx);
 				}
 				
 			},
@@ -386,7 +387,7 @@ impl event::EventHandler for MainState {
 						// The `.stop()` method for a ggez audio source doesn't seem to work
 						// correctly, so this is an ugly method of stopping and restarting the
 						// audio. Reload from disk and overwrite existing. Eeewww!
-						*self.sfx.get_mut("intro").unwrap() = audio::Source::new(_ctx, "/sounds/intro.ogg").expect("Could not load intro music");
+						*self.sfx.get_mut("intro").unwrap() = audio::Source::new(ctx, "/sounds/intro.ogg").expect("Could not load intro music");
 						self.sfx["intro"].play().unwrap();
 					}
 				}
@@ -398,17 +399,17 @@ impl event::EventHandler for MainState {
 					None => (),
 				}
 
-				self.score_text = graphics::Text::new(_ctx, &format!("Score: {}", &self.score.to_string()), &self.score_font).unwrap();
+				self.score_text = graphics::Text::new(ctx, &format!("Score: {}", &self.score.to_string()), &self.score_font).unwrap();
 			
 				// Run thru the list of entities
 				for i in 0..self.entities.len() {
 					let mut e = self.entities.remove(i);
-					e.update(self, _ctx);
+					e.update(self, ctx);
 					self.entities.insert(i, e);
 				}
 
 				// Set the score variable
-				self.score_text = graphics::Text::new(_ctx, &format!("Score: {}", 
+				self.score_text = graphics::Text::new(ctx, &format!("Score: {}", 
 					&self.score.to_string()), &self.score_font).unwrap();
 
 				if self.input.shoot {
@@ -441,7 +442,7 @@ impl event::EventHandler for MainState {
 					};
 					
 					if !dying {
-						if e.hp <= 0 || e.y > _ctx.conf.window_mode.height as f32 {
+						if e.hp <= 0 || e.y > ctx.conf.window_mode.height as f32 {
 							dying = true;
 						}
 					}
@@ -466,7 +467,7 @@ impl event::EventHandler for MainState {
 					// The `.stop()` method for a ggez audio source doesn't seem to work
 					// correctly, so this is an ugly method of stopping and restarting the
 					// audio. Reload from disk and overwrite existing. Eeewww!
-					*self.sfx.get_mut("explode").unwrap() = audio::Source::new(_ctx, "/sounds/explode.wav").expect("Could not load explode.wav");
+					*self.sfx.get_mut("explode").unwrap() = audio::Source::new(ctx, "/sounds/explode.wav").expect("Could not load explode.wav");
 					self.sfx["explode"].play().unwrap();
 				}
 
@@ -506,8 +507,10 @@ impl event::EventHandler for MainState {
 
 		match self.game_state {
 			GameMode::Menu => {
-				// Draw the background
-				graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, 0.0), 0.0)?;
+				// Draw two layers of two background copies staggered according to elapsed_ms
+				let background_y = ( (self.elapsed_ms/40%1920) as i32 / 2 * 2 ) as f32;
+				graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, background_y), 0.0)?;
+				graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, -1920.0 + background_y), 0.0)?;
 				
 				// Draw title
 				graphics::draw(ctx, &self.title, graphics::Point2::new(229.0, 100.0), 0.0)?;

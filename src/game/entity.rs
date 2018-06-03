@@ -21,7 +21,7 @@ extern crate ggez;
 extern crate rand;
 
 use std;
-use ggez::graphics;
+use ggez::{graphics, audio};
 use ggez::Context;
 use game::{MainState, BOSS_BULLET_NUMBER, BOSS_BULLET_COOLDOWN, ENEMY_BULLET_COOLDOWN};
 //use game::rand::Rng;
@@ -109,7 +109,7 @@ impl Entity {
         self.y += dy;
     }
 
-	pub fn update(&mut self, state: &mut MainState, _ctx: &mut Context) {
+	pub fn update(&mut self, state: &mut MainState, ctx: &mut Context) {
 		
 		let delta_ms = state.delta_ms;
 
@@ -136,7 +136,9 @@ impl Entity {
 				self.translate(x * delta_time, y * delta_time);
 				},
 		}
-	
+
+		let mut shots_fired = false;
+		
 		match self.entity_type {
 
 			// Player only code
@@ -158,8 +160,8 @@ impl Entity {
 				}
 
 				// Limit player position to map.
-				let window_width = _ctx.conf.window_mode.width as f32;
-				let window_height = _ctx.conf.window_mode.height as f32;
+				let window_width = ctx.conf.window_mode.width as f32;
+				let window_height = ctx.conf.window_mode.height as f32;
 
 				if self.x + self.bounds.x < 0.0 {
 					self.x = 0.0 - self.bounds.x;
@@ -181,18 +183,19 @@ impl Entity {
 			// Enemy only code
 			EntityType::Enemy => {
 				if self.bullet_cooldown <= 0 {
+					shots_fired = true;
 					self.bullet_cooldown = ENEMY_BULLET_COOLDOWN;
 					let texture = &state.textures[&EntityType::Enemy];
 					let bullet_x = self.x + texture.width() as f32 / 2.0 - 18.0;
 					let bullet_y = self.y + texture.height() as f32;
 					let eb = state.spawner.spawn_enemy_bullet(bullet_x, bullet_y, (3.0 * std::f64::consts::PI / 2.0) as f32);
 					state.entities.push(eb);
-
 				}
 			},
 			
 			EntityType::EnemyBlueScreen => {
 				if self.bullet_cooldown <= 0 {
+					shots_fired = true;
 					self.bullet_cooldown = ENEMY_BULLET_COOLDOWN;
 					let texture = &state.textures[&EntityType::EnemyBlueScreen];
 					let bullet_x = self.x + texture.width() as f32 / 2.0 - 18.0;
@@ -215,6 +218,7 @@ impl Entity {
 
 			EntityType::Boss => {
 				if self.bullet_cooldown <= 0 {
+					shots_fired = true;
 					self.bullet_cooldown = BOSS_BULLET_COOLDOWN;
 					
 					let increment = (std::f64::consts::PI * 2.0 / BOSS_BULLET_NUMBER as f64) as f32;
@@ -235,6 +239,12 @@ impl Entity {
 			},
 
 			_ => (),
+		}
+		
+		if shots_fired {
+			// Nasty means of playing enemy shot sounds quickly on the same channel. 
+			*state.sfx.get_mut("enemy_shot").unwrap() = audio::Source::new(ctx, "/sounds/enemy_shot.wav").expect("Could not load enemy shot");
+			state.sfx["enemy_shot"].play().unwrap();
 		}
 		
 	}
