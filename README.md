@@ -33,7 +33,7 @@ To run standalone the file structure must match the following:
 - ferris.exe
 - SDL2.dll
 
-## How to Play
+## How to play
 
 `Space` to shoot, `up`, `down`, `left`, `right` to move.
 
@@ -43,5 +43,11 @@ Grab power bombs to clear the screen.
 
 If your executable crashes, your video card may not support the necessary shaders for SDL2. You might try editing `conf.toml` and changing the window mode line to read `fullscreen_type = "Desktop"`.
 
-## License
+## Licensing
+
 This program is licensed under the "MIT License". Please see the file LICENSE in the source distribution of this software for license terms.
+
+## Media attribution
+
+* Intro and background music - "[Hyperbola](http://sampleswap.org/mp3/song.php?id=432)" by [TranceAddict](http://sampleswap.org/artist/TranceAddict) - [creative commons license](https://creativecommons.org/licenses/by-sa/3.0/)
+* Ferris sprite - based on artwork by [Karen Rustad Tölva](http://rustacean.net) - [public domain](https://creativecommons.org/publicdomain/zero/1.0/)
