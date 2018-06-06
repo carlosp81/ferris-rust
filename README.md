@@ -4,8 +4,11 @@ Copyright (C) 2018 River Bartz, Daniel Dupriest, Brandon Goldbeck
 
 A game written for an Intro to Rust course at Portland State University. Defend programming land from space bug infestation!
 
+(See the wiki for features roadmap)
+
 ## Installation
 
+### Windows
 The game requires Visual C++ Runtime 2015, which can be downloaded from Microsoft at https://www.microsoft.com/en-us/download/details.aspx?id=52685 if you don't have it installed already.
 
 ### Win64 binary
@@ -21,6 +24,12 @@ The latest binary version is available from at https://github.com/bgoldbeck/ferr
 2. Compile with `--release` option for full speed.
 
 `cargo run --release`
+
+### Linux
+-- TODO
+
+### Mac
+Not supported
 
 #### File/directory layout
 
