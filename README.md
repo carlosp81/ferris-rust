@@ -15,6 +15,18 @@ The game requires Visual C++ Runtime 2015, which can be downloaded from Microsof
 
 The latest binary version is available from at https://github.com/bgoldbeck/ferris-rust/releases.
 
+#### File/directory layout
+
+To run standalone the file structure must match the following:
+
+- resources/
+  - font/ & contents
+  - sounds/ & contents
+  - texture/ & contents
+- conf.toml
+- ferris.exe
+- SDL2.dll
+
 ### Compiling from source
 
 1. Clone the project using git.
@@ -31,17 +43,7 @@ The latest binary version is available from at https://github.com/bgoldbeck/ferr
 ### Mac
 Not supported
 
-#### File/directory layout
 
-To run standalone the file structure must match the following:
-
-- resources/
-  - font/ & contents
-  - sounds/ & contents
-  - texture/ & contents
-- conf.toml
-- ferris.exe
-- SDL2.dll
 
 ## How to play
 
