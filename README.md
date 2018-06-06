@@ -44,7 +44,7 @@ Grab power bombs to clear the screen.
 
 ## Troubleshooting
 
-* **SdlError("Could not create GL context")** - If you use open source MESA drivers for your video card, there may be a compatibility issue with version 18.0. See [this ggez issue](https://github.com/ggez/ggez/issues/194) for details. It seems downgrading to 17.* or upgrading to 18.* might solve the issue.
+* **SdlError("Could not create GL context")** - If you use open source MESA drivers for your video card, there may be a compatibility issue with versions 17.2 and up. See [this ggez issue](https://github.com/ggez/ggez/issues/194) for details. It seems downgrading to 17.1 may be a temporary fix. It is not clear if the issue has been resolved by version 18.0.4.
 * **Shader support** - Some computers with integrated graphics may not support the necessary shaders for SDL2.
 * **Resolution issues** - If you encounter screen resolution issues you might try editing `conf.toml` and changing the window mode line to read `fullscreen_type = "Desktop"`.
 
