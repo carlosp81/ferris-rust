@@ -8,42 +8,33 @@ A game written for an Intro to Rust course at Portland State University. Defend 
 
 ## Installation
 
-### Windows
+### Download Windows binary
+
 The game requires Visual C++ Runtime 2015, which can be downloaded from Microsoft at https://www.microsoft.com/en-us/download/details.aspx?id=52685 if you don't have it installed already.
 
-### Win64 binary
+1. Download the game's latest binary version from https://github.com/bgoldbeck/ferris-rust/releases.
 
-The latest binary version is available from at https://github.com/bgoldbeck/ferris-rust/releases.
+### Compiling from source
 
-#### File/directory layout
+The game should build under Windows or Linux with the stable version of Rust.
 
-To run standalone the file structure must match the following:
+1. Clone the project using git.
+
+`git clone https://github.com/bgoldbeck/cs410p-project.git`
+
+2. Run with `--release` option for full speed.
+
+`cargo run --release`
+
+To create your own standalone executable the file structure must match the following:
 
 - resources/
   - font/ & contents
   - sounds/ & contents
   - texture/ & contents
 - conf.toml
-- ferris.exe
+- ferris.exe (or 'ferris')
 - SDL2.dll
-
-### Compiling from source
-
-1. Clone the project using git.
-
-`git clone https://github.com/bgoldbeck/cs410p-project.git`
-
-2. Compile with `--release` option for full speed.
-
-`cargo run --release`
-
-### Linux
--- TODO
-
-### Mac
-Not supported
-
-
 
 ## How to play
 
@@ -53,7 +44,9 @@ Grab power bombs to clear the screen.
 
 ## Troubleshooting
 
-If your executable crashes, your video card may not support the necessary shaders for SDL2. You might try editing `conf.toml` and changing the window mode line to read `fullscreen_type = "Desktop"`.
+* **SdlError("Could not create GL context")** - If you use open source MESA drivers for your video card, there may be a compatibility issue with version 18.0. See [this ggez issue](https://github.com/ggez/ggez/issues/194) for details. It seems downgrading to 17.* or upgrading to 18.* might solve the issue.
+* **Shader support** - Some computers with integrated graphics may not support the necessary shaders for SDL2.
+* **Resolution issues** - If you encounter screen resolution issues you might try editing `conf.toml` and changing the window mode line to read `fullscreen_type = "Desktop"`.
 
 ## Licensing
 
