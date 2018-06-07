@@ -21,8 +21,8 @@ DEALINGS IN THE SOFTWARE.
 extern crate ggez;
 
 use ggez::conf;
-use ggez::{Context};
-use ggez::event::{self};
+use ggez::Context;
+use ggez::event;
 
 use std::env;
 use std::path;
@@ -42,16 +42,16 @@ pub fn main() {
     let mut file = match File::open("conf.toml") {
         Ok(f) => f,
         Err(e) => {
-          println!("{:?}", e);
-          std::process::exit(1);
-        },
+            println!("{:?}", e);
+            std::process::exit(1);
+        }
     };
     let c = match conf::Conf::from_toml_file(&mut file) {
         Ok(f) => f,
         Err(e) => {
-          println!("{:?}", e);
-          std::process::exit(1);
-	},
+            println!("{:?}", e);
+            std::process::exit(1);
+        }
     };
 
     let ctx = &mut Context::load_from_conf("Ferris Crustacean's Day Off", "ggez", c).unwrap();
