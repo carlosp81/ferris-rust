@@ -29,7 +29,7 @@ const ENEMY_COOLDOWN: i64 = 1_500;
 const ENEMY_COOLDOWN_BLUESCREEN: i64 = 6_000;
 const ENEMY_COOLDOWN_BOSS: i64 = 60_000;
 const POWERUP1_COOLDOWN: i64 = 25_000;
-const POWERUP2_COOLDOWN: i64 = 2_000;
+const POWERUP2_COOLDOWN: i64 = 12_000;
 
 pub struct EntitySpawner {
     pub _screen_height: u32,
@@ -193,7 +193,7 @@ impl EntitySpawner {
             3 => {
                 e.name = "ANSI C".to_string();
                 e.entity_type = EntityType::Boss;
-                e.hp = 25;
+                e.hp = 40;
                 e.movement = Movement::Generated(|t, _r, s| {
                     (((t as f64) / 1000.0 + s * 1000.0).sin() as f32 * 60.0, 20.0)
                 });
