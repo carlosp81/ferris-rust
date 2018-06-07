@@ -236,7 +236,8 @@ pub fn new_game(state: &mut MainState, ctx: &mut Context) {
 
     // Reset the score
     state.score = 0;
-
+    state.gun_level = 0;
+    
     // Create a new player object
     let player = entity::Entity {
         angle: 0.0,
@@ -550,10 +551,10 @@ impl event::EventHandler for MainState {
                                 self.entities.push(pb2);
                             }
 
-                            // 4th powerup
+                            // 4th powerup is a slow double gun
                             3 => {
                                 // Reset cooldown.
-                                self.entities[0].bullet_cooldown = PLAYER_BULLET_COOLDOWN * 3;
+                                self.entities[0].bullet_cooldown = PLAYER_BULLET_COOLDOWN * 2;
                                 // Spawn the bullet.
                                 let x1 = self.entities[0].x
                                     + (self.textures[&entity::EntityType::Player][0].width() as f32 / 2.0)
@@ -574,20 +575,77 @@ impl event::EventHandler for MainState {
                                 let pb2 = self.spawner.player_bullet_spawner(x2, y2);
                                 self.entities.push(pb2);
                             }
-                            // MAX LEVEL
+
+                            // 5th powerup is a slow tri gun
+                            4 => {
+                                // Reset cooldown.
+                                self.entities[0].bullet_cooldown = PLAYER_BULLET_COOLDOWN * 2;
+                                // Spawn the bullet.
+                                let x1 = self.entities[0].x
+                                    + (self.textures[&entity::EntityType::Player][0].width() as f32 / 2.0)
+                                    - (self.textures[&entity::EntityType::PlayerBullet][0].width() as f32
+                                        * 0.2);
+                                let x2 = self.entities[0].x
+                                    + (self.textures[&entity::EntityType::Player][0].width() as f32 / 2.0)
+                                    - (self.textures[&entity::EntityType::PlayerBullet][0].width() as f32
+                                        * 0.5);
+                                let x3 = self.entities[0].x
+                                    + (self.textures[&entity::EntityType::Player][0].width() as f32 / 2.0)
+                                    - (self.textures[&entity::EntityType::PlayerBullet][0].width() as f32
+                                        * 0.8);
+                                let y1 = self.entities[0].y
+                                    - (self.textures[&entity::EntityType::PlayerBullet][0].height() as f32
+                                        / 2.0);
+                                let y2 = self.entities[0].y
+                                    - (self.textures[&entity::EntityType::PlayerBullet][0].height() as f32
+                                        / 2.0);
+                                let y3 = self.entities[0].y
+                                    - (self.textures[&entity::EntityType::PlayerBullet][0].height() as f32
+                                        / 2.0);
+                                let mut pb1 = self.spawner.player_bullet_spawner(x1, y1);
+                                pb1.movement = Movement::Linear(-BULLET_SPEED / 2_f32, -BULLET_SPEED);
+                                self.entities.push(pb1);
+                                let pb2 = self.spawner.player_bullet_spawner(x2, y2);
+                                self.entities.push(pb2);
+                                let mut pb3 = self.spawner.player_bullet_spawner(x3, y3);
+                                pb3.movement = Movement::Linear(BULLET_SPEED / 2_f32, -BULLET_SPEED);
+                                self.entities.push(pb3);
+                            }
+
+                            // 6th powerup is MAX LEVEL!!
                             _ => {
                                 // Reset cooldown.
                                 self.entities[0].bullet_cooldown = PLAYER_BULLET_COOLDOWN;
                                 // Spawn the bullet.
-                                let x = self.entities[0].x
+                                let x1 = self.entities[0].x
                                     + (self.textures[&entity::EntityType::Player][0].width() as f32 / 2.0)
                                     - (self.textures[&entity::EntityType::PlayerBullet][0].width() as f32
-                                        / 2.0);
-                                let y = self.entities[0].y
+                                        * 0.2);
+                                let x2 = self.entities[0].x
+                                    + (self.textures[&entity::EntityType::Player][0].width() as f32 / 2.0)
+                                    - (self.textures[&entity::EntityType::PlayerBullet][0].width() as f32
+                                        * 0.5);
+                                let x3 = self.entities[0].x
+                                    + (self.textures[&entity::EntityType::Player][0].width() as f32 / 2.0)
+                                    - (self.textures[&entity::EntityType::PlayerBullet][0].width() as f32
+                                        * 0.8);
+                                let y1 = self.entities[0].y
                                     - (self.textures[&entity::EntityType::PlayerBullet][0].height() as f32
                                         / 2.0);
-                                let pb = self.spawner.player_bullet_spawner(x, y);
-                                self.entities.push(pb);
+                                let y2 = self.entities[0].y
+                                    - (self.textures[&entity::EntityType::PlayerBullet][0].height() as f32
+                                        / 2.0);
+                                let y3 = self.entities[0].y
+                                    - (self.textures[&entity::EntityType::PlayerBullet][0].height() as f32
+                                        / 2.0);
+                                let mut pb1 = self.spawner.player_bullet_spawner(x1, y1);
+                                pb1.movement = Movement::Linear(-BULLET_SPEED / 2_f32, -BULLET_SPEED);
+                                self.entities.push(pb1);
+                                let pb2 = self.spawner.player_bullet_spawner(x2, y2);
+                                self.entities.push(pb2);
+                                let mut pb3 = self.spawner.player_bullet_spawner(x3, y3);
+                                pb3.movement = Movement::Linear(BULLET_SPEED / 2_f32, -BULLET_SPEED);
+                                self.entities.push(pb3);
                             }
                         }
                         
