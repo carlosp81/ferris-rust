@@ -42,6 +42,12 @@ To create your own standalone executable the file structure must match the follo
 
 Grab power bombs to clear the screen.
 
+## Documentation
+
+Documentation for the Ferris code can be generated with:
+
+`cargo rustdoc --open -- --no-defaults --passes collapse-docs --passes unindent-comments --passes strip-priv-imports`.
+
 ## Troubleshooting
 
 * **SdlError("Could not create GL context")** - If you use open source MESA drivers for your video card, there may be a compatibility issue with versions 17.2 and up. See [this ggez issue](https://github.com/ggez/ggez/issues/194) for details. It seems downgrading to 17.1 may be a temporary fix. It is not clear if the issue has been resolved by version 18.0.4.
