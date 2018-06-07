@@ -39,6 +39,7 @@ pub enum EntityType {
     Powerup,
     Splat,
     Shutoff,
+    GunUpgrade
 }
 
 #[derive(Debug)]

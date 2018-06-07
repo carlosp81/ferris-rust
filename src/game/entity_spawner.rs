@@ -28,7 +28,8 @@ use std;
 const ENEMY_COOLDOWN: i64 = 1_500;
 const ENEMY_COOLDOWN_BLUESCREEN: i64 = 6_000;
 const ENEMY_COOLDOWN_BOSS: i64 = 60_000;
-const POWERUP_COOLDOWN: i64 = 10_000;
+const POWERUP1_COOLDOWN: i64 = 25_000;
+const POWERUP2_COOLDOWN: i64 = 2_000;
 
 pub struct EntitySpawner {
     pub _screen_height: u32,
@@ -50,8 +51,9 @@ impl EntitySpawner {
         p.cooldowns
             .insert(EntityType::EnemyBlueScreen, ENEMY_COOLDOWN_BLUESCREEN);
         p.cooldowns.insert(EntityType::Boss, ENEMY_COOLDOWN_BOSS);
-        p.cooldowns.insert(EntityType::Powerup, POWERUP_COOLDOWN);
-
+        p.cooldowns.insert(EntityType::Powerup, POWERUP1_COOLDOWN);
+        p.cooldowns.insert(EntityType::GunUpgrade, POWERUP2_COOLDOWN);
+        
         p
     }
 
@@ -236,6 +238,32 @@ impl EntitySpawner {
         e
     }
 
+    pub fn spawn_gunupgrade(&self) -> Entity {
+        let e = Entity {
+            name: "gun upgrade".to_string(),
+            entity_type: EntityType::GunUpgrade,
+            x: 0.0,
+            y: 0.0,
+            hp: 1,
+            damage: 1,
+            vel: 10.0,
+            bounds: graphics::Rect {
+                x: 0.0,
+                y: 0.0,
+                w: 32.0,
+                h: 32.0,
+            },
+            movement: Movement::Linear(0.0, 50.0),
+            lifetime: Lifetime::Milliseconds(100_000),
+            seed: 0.0,
+            timer: 0,
+            bullet_cooldown: 0,
+            angle: 0.0,
+        };
+        // Return powerup entity option type.
+        e
+    }
+
     // Update the cooldowns on all entity types that have them. If a cooldown triggers,
     // spawn that entity and return it.
     pub fn update(&mut self, delta_ms: u64) -> Option<Entity> {
@@ -294,10 +322,20 @@ impl EntitySpawner {
             }
             EntityType::Powerup => {
                 // Reset cooldown.
-                self.cooldowns.insert(entity_type, POWERUP_COOLDOWN);
+                self.cooldowns.insert(entity_type, POWERUP1_COOLDOWN);
 
                 // Create powerup.
                 let mut powerup = self.spawn_powerup();
+                powerup.x = self.rng.gen_range(0.0, self.screen_width as f32);
+                powerup.y = -45.0;
+                return Some(powerup);
+            }
+            EntityType::GunUpgrade => {
+                // Reset cooldown.
+                self.cooldowns.insert(entity_type, POWERUP2_COOLDOWN);
+
+                // Create powerup.
+                let mut powerup = self.spawn_gunupgrade();
                 powerup.x = self.rng.gen_range(0.0, self.screen_width as f32);
                 powerup.y = -45.0;
                 return Some(powerup);

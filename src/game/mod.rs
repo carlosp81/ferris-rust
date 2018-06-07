@@ -45,7 +45,7 @@ const ENEMY_FONT_SIZE: u32 = 12;
 const ENEMY_LIFETIME: i64 = 100_000;
 const ENEMY_NAMES: [&str; 4] = ["NULL POINTER", "DANGLING REF", "SEGFAULT", "DOUBLE FREE"];
 const GOD_MODE: bool = false;
-const PLAYER_BULLET_COOLDOWN: i64 = 250;
+const PLAYER_BULLET_COOLDOWN: i64 = 200;
 const SHOW_INPUT_DEBUG: bool = false;
 const SHUTOFF_LIFETIME: i64 = 500;
 const SPLAT_LIFETIME: i64 = 500;
@@ -87,6 +87,7 @@ pub struct MainState {
     start_time: std::time::SystemTime,
     textures: std::collections::HashMap<entity::EntityType, Vec<graphics::Image>>,
     title: graphics::Image,
+    gun_level: u32
 }
 
 // This is the object ggez will update with the screen.
@@ -114,6 +115,7 @@ impl MainState {
             quit: false,
             rng: rand::thread_rng(),
             score: 0,
+            gun_level: 0,
             score_font,
             score_text,
             sfx: std::collections::HashMap::new(),
@@ -184,6 +186,10 @@ impl MainState {
         s.textures.insert(
             entity::EntityType::Boss,
             vec![graphics::Image::new(ctx, "/texture/boss.png").unwrap()],
+        );
+        s.textures.insert(
+            entity::EntityType::GunUpgrade,
+            vec![graphics::Image::new(ctx, "/texture/gunupgrade.png").unwrap()],
         );
 
         // Set up music and sound effects
@@ -275,6 +281,7 @@ fn handle_collisions(state: &mut MainState) {
     // Iterate through subject entities
     for entity_idx in 0..state.entities.len() {
         match state.entities[entity_idx].entity_type {
+            // Search for things that are colliding with the player
             EntityType::Player => {
                 for threat_idx in 0..state.entities.len() {
                     match state.entities[threat_idx].entity_type {
@@ -315,7 +322,6 @@ fn handle_collisions(state: &mut MainState) {
                         }
                         EntityType::Powerup => {
                             if colliding(state, entity_idx, threat_idx) {
-                                // Right now, the only powerup we have will destroy all enemies on the screen.
                                 for enemy_idx in 0..state.entities.len() {
                                     if state.entities[enemy_idx].entity_type == EntityType::Enemy
                                         || state.entities[enemy_idx].entity_type
@@ -331,16 +337,19 @@ fn handle_collisions(state: &mut MainState) {
                                 state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
                             }
                         }
+                        EntityType::GunUpgrade => {
+                            if colliding(state, entity_idx, threat_idx) {
+                                // Upgrade the player's gun
+                                state.gun_level = state.gun_level + 1;
+                                state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
+                            }
+                        }
                         _ => (),
                     }
                 }
             }
 
-            EntityType::PlayerBullet => {}
-
-            EntityType::EnemyBullet => (),
-
-            // If we are an enemy (entity_idx)
+            // Search for things that are colliding with the enemy
             EntityType::Enemy | EntityType::EnemyBlueScreen | EntityType::Boss => {
                 for threat_idx in 0..state.entities.len() {
                     match state.entities[threat_idx].entity_type {
@@ -481,18 +490,107 @@ impl event::EventHandler for MainState {
 
                 if self.input.shoot {
                     if self.entities[0].bullet_cooldown == 0 {
-                        // Reset cooldown.
-                        self.entities[0].bullet_cooldown = PLAYER_BULLET_COOLDOWN;
-                        // Spawn the bullet.
-                        let x = self.entities[0].x
-                            + (self.textures[&entity::EntityType::Player][0].width() as f32 / 2.0)
-                            - (self.textures[&entity::EntityType::PlayerBullet][0].width() as f32
-                                / 2.0);
-                        let y = self.entities[0].y
-                            - (self.textures[&entity::EntityType::PlayerBullet][0].height() as f32
-                                / 2.0);
-                        let pb = self.spawner.player_bullet_spawner(x, y);
-                        self.entities.push(pb);
+
+                        match self.gun_level {
+
+                            // First level up is a very slow single shot gun
+                            0 => {
+                                // Reset cooldown.
+                                self.entities[0].bullet_cooldown = PLAYER_BULLET_COOLDOWN * 3;
+                                // Spawn the bullet.
+                                let x = self.entities[0].x
+                                    + (self.textures[&entity::EntityType::Player][0].width() as f32 / 2.0)
+                                    - (self.textures[&entity::EntityType::PlayerBullet][0].width() as f32
+                                        / 2.0);
+                                let y = self.entities[0].y
+                                    - (self.textures[&entity::EntityType::PlayerBullet][0].height() as f32
+                                        / 2.0);
+                                let pb = self.spawner.player_bullet_spawner(x, y);
+                                self.entities.push(pb);
+                            },
+
+                            // Second level up is a slow single shot gun
+                            1 => {
+                                // Reset cooldown.
+                                self.entities[0].bullet_cooldown = PLAYER_BULLET_COOLDOWN * 2;
+                                // Spawn the bullet.
+                                let x = self.entities[0].x
+                                    + (self.textures[&entity::EntityType::Player][0].width() as f32 / 2.0)
+                                    - (self.textures[&entity::EntityType::PlayerBullet][0].width() as f32
+                                        / 2.0);
+                                let y = self.entities[0].y
+                                    - (self.textures[&entity::EntityType::PlayerBullet][0].height() as f32
+                                        / 2.0);
+                                let pb = self.spawner.player_bullet_spawner(x, y);
+                                self.entities.push(pb);
+                            }
+                            
+                            // Third level up is a very slow double shot gun
+                            2 => {
+                                // Reset cooldown.
+                                self.entities[0].bullet_cooldown = PLAYER_BULLET_COOLDOWN * 3;
+                                // Spawn the bullet.
+                                let x1 = self.entities[0].x
+                                    + (self.textures[&entity::EntityType::Player][0].width() as f32 / 2.0)
+                                    - (self.textures[&entity::EntityType::PlayerBullet][0].width() as f32
+                                        * 0.1);
+                                let x2 = self.entities[0].x
+                                    + (self.textures[&entity::EntityType::Player][0].width() as f32 / 2.0)
+                                    - (self.textures[&entity::EntityType::PlayerBullet][0].width() as f32
+                                        * 0.9);
+                                let y1 = self.entities[0].y
+                                    - (self.textures[&entity::EntityType::PlayerBullet][0].height() as f32
+                                        / 2.0);
+                                let y2 = self.entities[0].y
+                                    - (self.textures[&entity::EntityType::PlayerBullet][0].height() as f32
+                                        / 2.0);
+                                let pb1 = self.spawner.player_bullet_spawner(x1, y1);
+                                self.entities.push(pb1);
+                                let pb2 = self.spawner.player_bullet_spawner(x2, y2);
+                                self.entities.push(pb2);
+                            }
+
+                            // 4th powerup
+                            3 => {
+                                // Reset cooldown.
+                                self.entities[0].bullet_cooldown = PLAYER_BULLET_COOLDOWN * 3;
+                                // Spawn the bullet.
+                                let x1 = self.entities[0].x
+                                    + (self.textures[&entity::EntityType::Player][0].width() as f32 / 2.0)
+                                    - (self.textures[&entity::EntityType::PlayerBullet][0].width() as f32
+                                        * 0.1);
+                                let x2 = self.entities[0].x
+                                    + (self.textures[&entity::EntityType::Player][0].width() as f32 / 2.0)
+                                    - (self.textures[&entity::EntityType::PlayerBullet][0].width() as f32
+                                        * 0.9);
+                                let y1 = self.entities[0].y
+                                    - (self.textures[&entity::EntityType::PlayerBullet][0].height() as f32
+                                        / 2.0);
+                                let y2 = self.entities[0].y
+                                    - (self.textures[&entity::EntityType::PlayerBullet][0].height() as f32
+                                        / 2.0);
+                                let pb1 = self.spawner.player_bullet_spawner(x1, y1);
+                                self.entities.push(pb1);
+                                let pb2 = self.spawner.player_bullet_spawner(x2, y2);
+                                self.entities.push(pb2);
+                            }
+                            // MAX LEVEL
+                            _ => {
+                                // Reset cooldown.
+                                self.entities[0].bullet_cooldown = PLAYER_BULLET_COOLDOWN;
+                                // Spawn the bullet.
+                                let x = self.entities[0].x
+                                    + (self.textures[&entity::EntityType::Player][0].width() as f32 / 2.0)
+                                    - (self.textures[&entity::EntityType::PlayerBullet][0].width() as f32
+                                        / 2.0);
+                                let y = self.entities[0].y
+                                    - (self.textures[&entity::EntityType::PlayerBullet][0].height() as f32
+                                        / 2.0);
+                                let pb = self.spawner.player_bullet_spawner(x, y);
+                                self.entities.push(pb);
+                            }
+                        }
+                        
                         if !DISABLE_SFX {
                             // Nasty means of playing enemy shot sounds quickly on the same channel.
                             *self.sfx.get_mut("player_shot").unwrap() =
