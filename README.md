@@ -46,7 +46,7 @@ Grab power bombs to clear the screen.
 
 Documentation for the Ferris code can be generated with:
 
-`cargo rustdoc --open -- --no-defaults --passes collapse-docs --passes unindent-comments --passes strip-priv-imports`.
+`cargo rustdoc --open -- --no-defaults --passes collapse-docs --passes unindent-comments --passes strip-priv-imports`
 
 ## Troubleshooting
 
