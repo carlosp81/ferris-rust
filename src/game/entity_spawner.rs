@@ -30,6 +30,7 @@ const ENEMY_COOLDOWN_BLUESCREEN: i64 = 6_000;
 const ENEMY_COOLDOWN_BOSS: i64 = 60_000;
 const POWERUP1_COOLDOWN: i64 = 25_000;
 const POWERUP2_COOLDOWN: i64 = 12_000;
+const POWERUP3_COOLDOWN: i64 = 18_000;
 
 pub struct EntitySpawner {
     pub _screen_height: u32,
@@ -53,7 +54,8 @@ impl EntitySpawner {
         p.cooldowns.insert(EntityType::Boss, ENEMY_COOLDOWN_BOSS);
         p.cooldowns.insert(EntityType::Powerup, POWERUP1_COOLDOWN);
         p.cooldowns.insert(EntityType::GunUpgrade, POWERUP2_COOLDOWN);
-        
+        p.cooldowns.insert(EntityType::Shield, POWERUP3_COOLDOWN);
+
         p
     }
 
@@ -264,6 +266,32 @@ impl EntitySpawner {
         e
     }
 
+    pub fn spawn_shield(&self) -> Entity {
+        let e = Entity {
+            name: "firewall".to_string(),
+            entity_type: EntityType::Shield,
+            x: 0.0,
+            y: 0.0,
+            hp: 1,
+            damage: 1,
+            vel: 10.0,
+            bounds: graphics::Rect {
+                x: 0.0,
+                y: 0.0,
+                w: 32.0,
+                h: 32.0,
+            },
+            movement: Movement::Linear(0.0, 50.0),
+            lifetime: Lifetime::Milliseconds(100_000),
+            seed: 0.0,
+            timer: 0,
+            bullet_cooldown: 0,
+            angle: 0.0,
+        };
+        // Return powerup entity option type.
+        e
+    }
+
     // Update the cooldowns on all entity types that have them. If a cooldown triggers,
     // spawn that entity and return it.
     pub fn update(&mut self, delta_ms: u64) -> Option<Entity> {
@@ -336,6 +364,16 @@ impl EntitySpawner {
 
                 // Create powerup.
                 let mut powerup = self.spawn_gunupgrade();
+                powerup.x = self.rng.gen_range(0.0, self.screen_width as f32);
+                powerup.y = -45.0;
+                return Some(powerup);
+            }
+            EntityType::Shield => {
+                // Reset cooldown.
+                self.cooldowns.insert(entity_type, POWERUP3_COOLDOWN);
+
+                // Create powerup.
+                let mut powerup = self.spawn_shield();
                 powerup.x = self.rng.gen_range(0.0, self.screen_width as f32);
                 powerup.y = -45.0;
                 return Some(powerup);

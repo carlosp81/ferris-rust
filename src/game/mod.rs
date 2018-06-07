@@ -87,7 +87,8 @@ pub struct MainState {
     start_time: std::time::SystemTime,
     textures: std::collections::HashMap<entity::EntityType, Vec<graphics::Image>>,
     title: graphics::Image,
-    gun_level: u32
+    gun_level: u32,
+    shield_active: bool
 }
 
 // This is the object ggez will update with the screen.
@@ -116,6 +117,7 @@ impl MainState {
             rng: rand::thread_rng(),
             score: 0,
             gun_level: 0,
+            shield_active: false,
             score_font,
             score_text,
             sfx: std::collections::HashMap::new(),
@@ -191,6 +193,10 @@ impl MainState {
             entity::EntityType::GunUpgrade,
             vec![graphics::Image::new(ctx, "/texture/gunupgrade.png").unwrap()],
         );
+        s.textures.insert(
+            entity::EntityType::Shield,
+            vec![graphics::Image::new(ctx, "/texture/temp_shield.png").unwrap()],
+        );
 
         // Set up music and sound effects
         s.sfx.insert(
@@ -237,6 +243,7 @@ pub fn new_game(state: &mut MainState, ctx: &mut Context) {
     // Reset the score
     state.score = 0;
     state.gun_level = 0;
+    state.shield_active = false;
 
     // Create a new player object
     let player = entity::Entity {
@@ -289,8 +296,12 @@ fn handle_collisions(state: &mut MainState) {
                         EntityType::Enemy | EntityType::EnemyBlueScreen => {
                             if colliding(state, entity_idx, threat_idx) {
                                 if !GOD_MODE {
-                                    state.entities[entity_idx].hp -=
+                                    if state.shield_active {
+                                        state.shield_active = false;
+                                    } else {
+                                        state.entities[entity_idx].hp -=
                                         state.entities[threat_idx].damage;
+                                    }
                                 }
                                 state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
                                 if !DISABLE_SFX {
@@ -301,8 +312,12 @@ fn handle_collisions(state: &mut MainState) {
                         EntityType::Boss => {
                             if colliding(state, entity_idx, threat_idx) {
                                 if !GOD_MODE {
-                                    state.entities[entity_idx].hp -=
+                                    if state.shield_active {
+                                        state.shield_active = false;
+                                    } else {
+                                        state.entities[entity_idx].hp -=
                                         state.entities[threat_idx].damage;
+                                    }
                                 }
                                 if !DISABLE_SFX {
                                     state.sfx["hit"].play().unwrap();
@@ -312,8 +327,12 @@ fn handle_collisions(state: &mut MainState) {
                         EntityType::EnemyBullet => {
                             if colliding(state, entity_idx, threat_idx) {
                                 if !GOD_MODE {
-                                    state.entities[entity_idx].hp -=
+                                    if state.shield_active {
+                                        state.shield_active = false;
+                                    } else {
+                                        state.entities[entity_idx].hp -=
                                         state.entities[threat_idx].damage;
+                                    }
                                 }
                                 state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
                                 if !DISABLE_SFX {
@@ -342,6 +361,13 @@ fn handle_collisions(state: &mut MainState) {
                             if colliding(state, entity_idx, threat_idx) {
                                 // Upgrade the player's gun
                                 state.gun_level = state.gun_level + 1;
+                                state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
+                            }
+                        }
+                        EntityType::Shield => {
+                            if colliding(state, entity_idx, threat_idx) {
+                                // Upgrade the player's gun
+                                state.shield_active = true;
                                 state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
                             }
                         }
@@ -804,12 +830,17 @@ impl event::EventHandler for MainState {
 
                     // Special drawing conditions start
                     match e.entity_type {
+                        entity::EntityType::Player => {
+                            if self.shield_active {
+                                graphics::set_color(ctx, graphics::Color::new(0.3, 1.0, 0.3, 1.0))?
+                            }
+                        }
                         entity::EntityType::Boss => match e.hp {
-                            0...5 => graphics::set_color(
+                            0...10 => graphics::set_color(
                                 ctx,
                                 graphics::Color::new(1.0, 0.25, 0.25, 1.0),
                             )?,
-                            5...10 => {
+                            10...20 => {
                                 graphics::set_color(ctx, graphics::Color::new(1.0, 0.5, 0.5, 1.0))?
                             }
                             _ => {
