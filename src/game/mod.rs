@@ -38,7 +38,7 @@ const BOSS_BULLET_NUMBER: i64 = 3;
 const BULLET_SPEED: f32 = 400.0;
 const DEFAULT_FONT: &str = "/font/PressStart2P.ttf";
 const DEFAULT_FONT_SIZE: u32 = 20;
-const DISABLE_SFX: bool = true;
+const DISABLE_SFX: bool = false;
 const DRAW_BOUNDING_BOXES: bool = false;
 const ENEMY_BULLET_COOLDOWN: i64 = 2_000;
 const ENEMY_FONT_SIZE: u32 = 12;
@@ -237,7 +237,7 @@ pub fn new_game(state: &mut MainState, ctx: &mut Context) {
     // Reset the score
     state.score = 0;
     state.gun_level = 0;
-    
+
     // Create a new player object
     let player = entity::Entity {
         angle: 0.0,
@@ -629,21 +629,15 @@ impl event::EventHandler for MainState {
                                     + (self.textures[&entity::EntityType::Player][0].width() as f32 / 2.0)
                                     - (self.textures[&entity::EntityType::PlayerBullet][0].width() as f32
                                         * 0.8);
-                                let y1 = self.entities[0].y
+                                let y = self.entities[0].y
                                     - (self.textures[&entity::EntityType::PlayerBullet][0].height() as f32
                                         / 2.0);
-                                let y2 = self.entities[0].y
-                                    - (self.textures[&entity::EntityType::PlayerBullet][0].height() as f32
-                                        / 2.0);
-                                let y3 = self.entities[0].y
-                                    - (self.textures[&entity::EntityType::PlayerBullet][0].height() as f32
-                                        / 2.0);
-                                let mut pb1 = self.spawner.player_bullet_spawner(x1, y1);
+                                let mut pb1 = self.spawner.player_bullet_spawner(x1, y);
                                 pb1.movement = Movement::Linear(-BULLET_SPEED / 2_f32, -BULLET_SPEED);
                                 self.entities.push(pb1);
-                                let pb2 = self.spawner.player_bullet_spawner(x2, y2);
+                                let pb2 = self.spawner.player_bullet_spawner(x2, y);
                                 self.entities.push(pb2);
-                                let mut pb3 = self.spawner.player_bullet_spawner(x3, y3);
+                                let mut pb3 = self.spawner.player_bullet_spawner(x3, y);
                                 pb3.movement = Movement::Linear(BULLET_SPEED / 2_f32, -BULLET_SPEED);
                                 self.entities.push(pb3);
                             }
