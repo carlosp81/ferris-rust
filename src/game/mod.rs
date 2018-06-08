@@ -1,21 +1,9 @@
-/*
-Copyright <2018> <River Bartz, Daniel Dupriest, Brandon Goldbeck>
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this 
-software and associated documentation files (the "Software"), to deal in the Software 
-without restriction, including without limitation the rights to use, copy, modify, 
-merge, publish, distribute, sublicense, and/or sell copies of the Software, and to 
-permit persons to whom the Software is furnished to do so, subject to the following 
-conditions:
-The above copyright notice and this permission notice shall be included in all copies
-or substantial portions of the Software.
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
-INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR 
-PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE 
-FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR 
-OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
-DEALINGS IN THE SOFTWARE.
-*/
+// Copyright © 2018
+// "River Bartz"<bpg@pdx.edu>
+// "Daniel Dupriest"<kououken@gmail.com>
+// "Brandon Goldbeck"<rbartz@pdx.edu>
+// This program is licensed under the "MIT License". Please see the file
+// LICENSE in the source distribution of this software for license terms.
 
 // Game engine creates
 extern crate ggez;
@@ -33,26 +21,36 @@ use self::entity::{EntityType, Lifetime, Movement};
 
 // Constants
 const ANIMATION_FRAMERATE: f64 = 2.283 * 2.0;
-const BOSS_BULLET_COOLDOWN: i64 = 150;
-const BOSS_BULLET_NUMBER: i64 = 3;
-const BULLET_SPEED: f32 = 400.0;
+const BOSS_BULLET_COOLDOWN: i64 = 170;
+const BOSS_BULLET_NUMBER: i64 = 4;
 const DEFAULT_FONT: &str = "/font/PressStart2P.ttf";
 const DEFAULT_FONT_SIZE: u32 = 20;
 const DISABLE_SFX: bool = false;
 const DRAW_BOUNDING_BOXES: bool = false;
-const ENEMY_BULLET_COOLDOWN: i64 = 2_000;
+const ENEMY_BULLET_COOLDOWN: i64 = 4_000;
+const ENEMY_BULLET_SPEED: f32 = 400.0;
 const ENEMY_FONT_SIZE: u32 = 12;
 const ENEMY_LIFETIME: i64 = 100_000;
-const ENEMY_NAMES: [&str; 4] = ["NULL POINTER", "DANGLING REF", "SEGFAULT", "DOUBLE FREE"];
-const GOD_MODE: bool = false;
-const PLAYER_BULLET_COOLDOWN: i64 = 200;
+const ENEMY_NAMES: [&str;7] = [
+	"NULL POINTER",
+	"DANGLING REF",
+	"SEGFAULT",
+	"DOUBLE FREE",
+	"INTEGER OVERFLOW",
+	"DEADLOCK",
+	"RACE CONDITION",
+];
+const PIXEL_SKIP: i32 = 2;
+const PLAYER_BULLET_COOLDOWN: i64 = 250;
+const PLAYER_BULLET_SPEED: f32 = 600.0;
 const SHOW_INPUT_DEBUG: bool = false;
 const SHUTOFF_LIFETIME: i64 = 500;
 const SPLAT_LIFETIME: i64 = 500;
 
-static mut MAX_ENTITIES: i64 = 0;
+static mut MAX_ENTITY_COUNT: i64 = 0;
+static mut GOD_MODE: bool = false;
 
-// Struct to represent player controls
+/// Represents the state of player controls
 struct Input {
     left: bool,
     right: bool,
@@ -61,172 +59,147 @@ struct Input {
     shoot: bool,
 }
 
-// Modes which control menu display / game loop
+/// Game modes for switching between menu display and the main game loop.
 pub enum GameMode {
     Menu,
     Game,
 }
 
-// First we make a struct to contain the game's state
+/// The main game state object which contains all the resources
+/// and variables needed by various functions.
 pub struct MainState {
+	/// Star field background
     background: graphics::Image,
-    delta_ms: u64,
-    elapsed_ms: u64,
+	/// Time since last frame was rendered (in ms).
+	delta_ms: u64,
+	/// Time elapsed since beginning of game (in ms).
+	elapsed_ms: u64,
+	/// Vector of all drawable game entities.
     entities: Vec<entity::Entity>,
-    game_state: GameMode,
-    high_scores: Vec<String>,
-    input: Input,
-    labels: std::collections::HashMap<String, graphics::Text>,
-    quit: bool,
-    rng: rand::ThreadRng,
+	/// Current game mode determining whether to display menu or game
+	game_mode: GameMode,
+	/// List of recent high scores.
+	high_scores: Vec<String>,
+	/// Player input state
+	input: Input,
+	/// Hash map of text label graphics for enemy names
+	labels: std::collections::HashMap<String, graphics::Text>,
+	/// Means of exiting the game
+	quit: bool,
+	/// Random number generator passed to certain functions
+	rng: rand::ThreadRng,
+	/// Current player score
     score: u32,
+	/// Font to use for player score
     score_font: graphics::Font,
-    score_text: graphics::Text,
-    sfx: std::collections::HashMap<&'static str, audio::Source>,
-    spawner: EntitySpawner, // This creates enemies and bullets
-    start_time: std::time::SystemTime,
-    textures: std::collections::HashMap<entity::EntityType, Vec<graphics::Image>>,
-    title: graphics::Image,
+	/// Hash map of all game sounds and music, indexed by string name
+	sfx: std::collections::HashMap<&'static str, audio::Source>,
+	/// Generator for game objects like enemies and bullets
+	spawner: EntitySpawner,
+	/// Reference time for when the game began
+	start_time: std::time::SystemTime,
+	/// Hash map of game entity textures, indexed by the enum `EntityType`.
+	/// Each entry is a vector of `Image` objects, and vectors with more
+	/// than one image will display as an animation.
+	textures: std::collections::HashMap<entity::EntityType, Vec<graphics::Image>>,
+	/// Game logo
+	title: graphics::Image,
     gun_level: u32,
     shield_active: bool
 }
 
-// This is the object ggez will update with the screen.
+/// This is the object ggez will update with the screen.
 impl MainState {
-    // Run one time at the start of the game
+	/// This function is run one time at the start of the game. It sets up
+	/// and returns the game state.
     pub fn new(ctx: &mut Context) -> GameResult<MainState> {
         let score_font = graphics::Font::new(ctx, DEFAULT_FONT, DEFAULT_FONT_SIZE)?;
-        let score_text = graphics::Text::new(ctx, "Score: ", &score_font)?;
-
+		
+		// Set up main state
         let mut s = MainState {
             background: graphics::Image::new(ctx, "/texture/background_tiled.png").unwrap(),
-            delta_ms: 0,   //Elapsed time since last frame, in milliseconds
-            elapsed_ms: 0, //Elapsed time since state creation, in milliseconds
+			delta_ms: 0,
+			elapsed_ms: 0,
             entities: Vec::new(),
-            game_state: GameMode::Menu,
-            high_scores: Vec::new(),
-            input: Input {
-                left: false,
-                right: false,
-                up: false,
-                down: false,
-                shoot: false,
-            },
-            labels: std::collections::HashMap::new(),
-            quit: false,
-            rng: rand::thread_rng(),
+			game_mode: GameMode::Menu,
+			high_scores: Vec::new(),
+			input: Input {
+				left: false, 
+				right: false, 
+				up: false,
+				down: false,
+				shoot: false,
+			},
+			labels: std::collections::HashMap::new(),
+			quit: false,
+			rng: rand::thread_rng(),
             score: 0,
             gun_level: 0,
             shield_active: false,
             score_font,
-            score_text,
-            sfx: std::collections::HashMap::new(),
-            spawner: EntitySpawner::new(ctx),
-            start_time: std::time::SystemTime::now(),
-            textures: std::collections::HashMap::new(),
+			sfx: std::collections::HashMap::new(),
+			spawner: EntitySpawner::new(ctx),
+			start_time:  std::time::SystemTime::now(),
+			textures: std::collections::HashMap::new(),
             title: graphics::Image::new(ctx, "/texture/title.png").unwrap(),
-        };
-
-        // Set up textures
-        s.textures.insert(
-            entity::EntityType::Player,
-            vec![
-                graphics::Image::new(ctx, "/texture/crab1.png").unwrap(),
-                graphics::Image::new(ctx, "/texture/crab0.png").unwrap(),
-                graphics::Image::new(ctx, "/texture/crab2.png").unwrap(),
-                graphics::Image::new(ctx, "/texture/crab0.png").unwrap(),
-                graphics::Image::new(ctx, "/texture/crab1.png").unwrap(),
-                graphics::Image::new(ctx, "/texture/crab0.png").unwrap(),
-                graphics::Image::new(ctx, "/texture/crab3.png").unwrap(),
-                graphics::Image::new(ctx, "/texture/crab0.png").unwrap(),
-            ],
-        );
-        s.textures.insert(
-            entity::EntityType::Enemy,
-            vec![
-                graphics::Image::new(ctx, "/texture/enemy0.png").unwrap(),
-                graphics::Image::new(ctx, "/texture/enemy1.png").unwrap(),
-            ],
-        );
-        s.textures.insert(
-            entity::EntityType::EnemyBlueScreen,
-            vec![
-                graphics::Image::new(ctx, "/texture/enemybluescreen.png").unwrap(),
-            ],
-        );
-        s.textures.insert(
-            entity::EntityType::PlayerBullet,
-            vec![
-                graphics::Image::new(ctx, "/texture/player_bullet.png").unwrap(),
-            ],
-        );
-        s.textures.insert(
-            entity::EntityType::EnemyBullet,
-            vec![
-                graphics::Image::new(ctx, "/texture/enemy_bullet.png").unwrap(),
-            ],
-        );
-        s.textures.insert(
-            entity::EntityType::Powerup,
-            vec![
-                graphics::Image::new(ctx, "/texture/powerup0.png").unwrap(),
-                graphics::Image::new(ctx, "/texture/powerup1.png").unwrap(),
-            ],
-        );
-        s.textures.insert(
-            entity::EntityType::Splat,
-            vec![graphics::Image::new(ctx, "/texture/splat.png").unwrap()],
-        );
-        s.textures.insert(
-            entity::EntityType::Shutoff,
-            vec![graphics::Image::new(ctx, "/texture/shutoff.png").unwrap()],
-        );
-        s.textures.insert(
-            entity::EntityType::Life,
-            vec![graphics::Image::new(ctx, "/texture/cpu.png").unwrap()],
-        );
-        s.textures.insert(
-            entity::EntityType::Boss,
-            vec![graphics::Image::new(ctx, "/texture/boss.png").unwrap()],
-        );
-        s.textures.insert(
+		};
+		
+		// Set up textures
+		s.textures.insert(entity::EntityType::Player, vec![
+			graphics::Image::new(ctx, "/texture/crab1.png").unwrap(),
+			graphics::Image::new(ctx, "/texture/crab0.png").unwrap(),
+			graphics::Image::new(ctx, "/texture/crab2.png").unwrap(),
+			graphics::Image::new(ctx, "/texture/crab0.png").unwrap(),
+			graphics::Image::new(ctx, "/texture/crab1.png").unwrap(),
+			graphics::Image::new(ctx, "/texture/crab0.png").unwrap(),
+			graphics::Image::new(ctx, "/texture/crab3.png").unwrap(),
+			graphics::Image::new(ctx, "/texture/crab0.png").unwrap(),
+			] );
+		s.textures.insert(entity::EntityType::Enemy, vec![
+			graphics::Image::new(ctx, "/texture/enemy0.png").unwrap(),
+			graphics::Image::new(ctx, "/texture/enemy1.png").unwrap(),
+		] );
+		s.textures.insert(entity::EntityType::EnemyBlueScreen, vec![
+			graphics::Image::new(ctx, "/texture/enemybluescreen0.png").unwrap(),
+			graphics::Image::new(ctx, "/texture/enemybluescreen1.png").unwrap()
+			] );
+		s.textures.insert(entity::EntityType::PlayerBullet, vec![graphics::Image::new(ctx, "/texture/player_bullet.png").unwrap()] );
+		s.textures.insert(entity::EntityType::EnemyBullet, vec![graphics::Image::new(ctx, "/texture/enemy_bullet.png").unwrap()] );
+		s.textures.insert(entity::EntityType::Powerup, vec![
+			graphics::Image::new(ctx, "/texture/powerup0.png").unwrap(),
+			graphics::Image::new(ctx, "/texture/powerup1.png").unwrap(),
+		] );
+		s.textures.insert(entity::EntityType::Splat, vec![graphics::Image::new(ctx, "/texture/splat.png").unwrap()] );
+		s.textures.insert(entity::EntityType::Shutoff, vec![graphics::Image::new(ctx, "/texture/shutoff.png").unwrap()] );
+		s.textures.insert(entity::EntityType::Life, vec![graphics::Image::new(ctx, "/texture/cpu.png").unwrap()] ); 
+		s.textures.insert(entity::EntityType::Boss, vec![graphics::Image::new(ctx, "/texture/boss.png").unwrap()] );
+		s.textures.insert(
             entity::EntityType::GunUpgrade,
             vec![graphics::Image::new(ctx, "/texture/gunupgrade.png").unwrap()],
         );
         s.textures.insert(
             entity::EntityType::Shield,
             vec![graphics::Image::new(ctx, "/texture/temp_shield.png").unwrap()],
-        );
+        )
+        
+		// Set up music and sound effects
+		s.sfx.insert("player_shot", audio::Source::new(ctx, "/sounds/player_shot.wav")?);
+		s.sfx.insert("hit", audio::Source::new(ctx, "/sounds/hit.wav")?);
+		s.sfx.insert("explode", audio::Source::new(ctx, "/sounds/explode.wav")?);
+		s.sfx.insert("intro", audio::Source::new(ctx, "/sounds/intro.ogg")?);
+		s.sfx.insert("bgm", audio::Source::new(ctx, "/sounds/Tejaswi-Hyperbola.ogg")?);
+		s.sfx.insert("enemy_shot", audio::Source::new(ctx, "/sounds/enemy_shot.wav")?);
 
-        // Set up music and sound effects
-        s.sfx.insert(
-            "player_shot",
-            audio::Source::new(ctx, "/sounds/player_shot.wav")?,
-        );
-        s.sfx
-            .insert("hit", audio::Source::new(ctx, "/sounds/hit.wav")?);
-        s.sfx
-            .insert("explode", audio::Source::new(ctx, "/sounds/explode.wav")?);
-        s.sfx
-            .insert("intro", audio::Source::new(ctx, "/sounds/intro.ogg")?);
-        s.sfx.insert(
-            "bgm",
-            audio::Source::new(ctx, "/sounds/Tejaswi-Hyperbola.ogg")?,
-        );
-        s.sfx.insert(
-            "enemy_shot",
-            audio::Source::new(ctx, "/sounds/enemy_shot.wav")?,
-        );
+		// Generate labels
+		let entity_font = graphics::Font::new(ctx, DEFAULT_FONT, ENEMY_FONT_SIZE)?;
+		for name in ENEMY_NAMES.iter() {
+			let text = graphics::Text::new(ctx, name, &entity_font).unwrap();
+			s.labels.insert(name.to_string(), text);
+		}
+		let bsod_text = graphics::Text::new(ctx, "BSOD", &entity_font).unwrap();
+		s.labels.insert("BSOD".to_string(), bsod_text);
 
-        // Generate labels
-        let entity_font = graphics::Font::new(ctx, DEFAULT_FONT, ENEMY_FONT_SIZE)?;
-        for name in ENEMY_NAMES.iter() {
-            let text = graphics::Text::new(ctx, name, &entity_font).unwrap();
-            s.labels.insert(name.to_string(), text);
-        }
-        let bsod_text = graphics::Text::new(ctx, "BSOD", &entity_font).unwrap();
-        s.labels.insert("BSOD".to_string(), bsod_text);
-
+		// Begin playing intro music
         if !DISABLE_SFX {
             s.sfx["intro"].play().unwrap();
         }
@@ -234,8 +207,8 @@ impl MainState {
         Ok(s)
     }
 }
-
-// Call this to start a new game
+	
+/// This function starts a new game
 pub fn new_game(state: &mut MainState, ctx: &mut Context) {
     // Clear out old entities
     state.entities.clear();
@@ -284,13 +257,14 @@ pub fn new_game(state: &mut MainState, ctx: &mut Context) {
     }
 }
 
-// Handle entity-entity interactions.
+/// This function handles all entity-entity interactions when colliding
 fn handle_collisions(state: &mut MainState) {
-    // Iterate through subject entities
-    for entity_idx in 0..state.entities.len() {
-        match state.entities[entity_idx].entity_type {
-            // Search for things that are colliding with the player
-            EntityType::Player => {
+
+	// Iterate through all entities
+	for entity_idx in 0..state.entities.len() {
+		match state.entities[entity_idx].entity_type {
+			// In the case of player
+			EntityType::Player => {
                 for threat_idx in 0..state.entities.len() {
                     match state.entities[threat_idx].entity_type {
                         EntityType::Enemy | EntityType::EnemyBlueScreen => {
@@ -375,54 +349,63 @@ fn handle_collisions(state: &mut MainState) {
                     }
                 }
             }
-
-            // Search for things that are colliding with the enemy
-            EntityType::Enemy | EntityType::EnemyBlueScreen | EntityType::Boss => {
-                for threat_idx in 0..state.entities.len() {
-                    match state.entities[threat_idx].entity_type {
-                        // See if we hit the threat
-                        EntityType::PlayerBullet => {
-                            if colliding(state, entity_idx, threat_idx) {
-                                state.entities[entity_idx].hp -= state.entities[threat_idx].damage;
-                                state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
-                                if state.entities[entity_idx].hp <= 0 {
-                                    state.entities[entity_idx].lifetime = Lifetime::Milliseconds(0);
-                                }
-
-                                if !DISABLE_SFX {
-                                    state.sfx["hit"].play().unwrap();
-                                }
+			
+			// In the case of an enemy or boss
+			EntityType::Enemy | EntityType::EnemyBlueScreen | EntityType::Boss => {
+				for threat_idx in 0..state.entities.len() {
+					match state.entities[threat_idx].entity_type {
+						
+						// When an enemy collides with a player bullet
+						EntityType::PlayerBullet => {
+							if colliding(state, entity_idx, threat_idx) {
+								
+								// Hurt the enemy by bullet damage amount
+								state.entities[entity_idx].hp -= state.entities[threat_idx].damage;
+								
+								// Kill the bullet
+								state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
+								
+								// Play hit sound
+								if !DISABLE_SFX {
+									state.sfx["hit"].play().unwrap();
+								}
                             }
-                        }
-                        _ => (),
-                    }
-                }
-            }
+						},
+						
+						_ => (),
+					}
+				}
+			},
 
-            _ => (),
-        }
-    }
+			_ => (),
+		}
+	}
 }
 
-// Check if a has hit b, and kill a if it does;
-fn colliding(state: &mut MainState, a: usize, b: usize) -> bool {
-    // If bounding boxes collide
-    let e1_x = state.entities[a].x + state.entities[a].bounds.x;
-    let e1_w = state.entities[a].bounds.w;
-    let e1_y = state.entities[a].y + state.entities[a].bounds.y;
-    let e1_h = state.entities[a].bounds.h;
-    let e2_x = state.entities[b].x + state.entities[b].bounds.x;
-    let e2_w = state.entities[b].bounds.w;
-    let e2_y = state.entities[b].y + state.entities[b].bounds.y;
-    let e2_h = state.entities[b].bounds.h;
-    if e1_x < e2_x + e2_w && e1_x + e1_w > e2_x && e1_y < e2_y + e2_h && e1_h + e1_y > e2_y {
-        true
-    } else {
-        false
-    }
+/// Returns true if the two entities are colliding. Collision is calculated
+/// using the `bounds` dimensions of the entity, not the sprite.
+fn colliding(state: &mut MainState, a: usize, b: usize) -> bool{
+	// If bounding boxes collide
+	let e1_x = state.entities[a].x + state.entities[a].bounds.x;
+	let e1_w = state.entities[a].bounds.w;
+	let e1_y = state.entities[a].y + state.entities[a].bounds.y;
+	let e1_h = state.entities[a].bounds.h;
+	let e2_x = state.entities[b].x + state.entities[b].bounds.x;
+	let e2_w = state.entities[b].bounds.w;
+	let e2_y = state.entities[b].y + state.entities[b].bounds.y;
+	let e2_h = state.entities[b].bounds.h;
+	if e1_x < e2_x + e2_w &&
+		e1_x + e1_w > e2_x &&
+		e1_y < e2_y + e2_h &&
+		e1_h + e1_y > e2_y {
+			true
+	}
+	else {
+		return false;
+	}
 }
 
-// Update state's elapsed ms and delta ms
+/// Update the state's `elapsed_ms` and `delta_ms`.
 fn update_time(state: &mut MainState) {
     let now = std::time::SystemTime::now();
     let difference = now.duration_since(state.start_time)
@@ -435,12 +418,13 @@ fn update_time(state: &mut MainState) {
     state.elapsed_ms = current_ms;
 }
 
-// Then we implement the `ggez:event::EventHandler` trait on it, which
-// requires callbacks for updating and drawing the game state each frame.
-//
-// The `EventHandler` trait also contains callbacks for event handling
-// that you can override if you wish, but the defaults are fine.
+/// We implement the `ggez:event::EventHandler` trait on `MainState`, which
+/// requires callbacks for updating and drawing the game state each frame.
+///
+/// The `EventHandler` trait also contains callbacks for event handling
+/// that you can override if you wish, but the defaults are fine.
 impl event::EventHandler for MainState {
+	/// Update game objects and do game logic loop
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
         if self.quit {
             ctx.quit()?;
@@ -700,53 +684,49 @@ impl event::EventHandler for MainState {
                         }
 
                         // 100% guarentee we can kill off the target by hp alone.
-                        e.hp = 0;
-                        dying_entities.push(all_idx);
-                    }
-                }
+						e.hp = 0;
+						dying_entities.push(all_idx);
+					}
+				}
 
-                // If at least one entity has died from low hp, we should make an explosion sound
-                if do_explosion_sound && !DISABLE_SFX {
-                    // The `.stop()` method for a ggez audio source doesn't seem to work
-                    // correctly, so this is an ugly method of stopping and restarting the
-                    // audio. Reload from disk and overwrite existing. Eeewww!
-                    *self.sfx.get_mut("explode").unwrap() =
-                        audio::Source::new(ctx, "/sounds/explode.wav")
-                            .expect("Could not load explode.wav");
-                    self.sfx["explode"].play().unwrap();
-                }
+				// Spawn some on_death effects.
+				for i in 0..dying_entities.len() {
+					let x = self.entities[dying_entities[i]].x;
+					let y = self.entities[dying_entities[i]].y;
+					match self.entities[dying_entities[i]].entity_type {
+						entity::EntityType::Boss => self.entities.push(self.spawner.spawn_splat(x, y)),
+						entity::EntityType::Enemy => self.entities.push(self.spawner.spawn_splat(x, y)),
+						entity::EntityType::EnemyBlueScreen => self.entities.push(self.spawner.spawn_shutoff(x, y)),
+						_ => (), 
+					}
+				}
 
-                // Spawn some on_death effects.
-                for i in 0..dying_entities.len() {
-                    let x = self.entities[dying_entities[i]].x;
-                    let y = self.entities[dying_entities[i]].y;
-                    match self.entities[dying_entities[i]].entity_type {
-                        entity::EntityType::Boss => {
-                            self.entities.push(self.spawner.spawn_splat(x, y))
-                        }
-                        entity::EntityType::Enemy => {
-                            self.entities.push(self.spawner.spawn_splat(x, y))
-                        }
-                        entity::EntityType::EnemyBlueScreen => {
-                            self.entities.push(self.spawner.spawn_shutoff(x, y))
-                        }
-                        _ => (),
-                    }
-                }
+				// Now we can just kill off stuff if it doesnt have hp.
+				self.entities.retain(|e| {
+					e.hp > 0
+				});
 
-                // Now we can just kill off stuff if it doesnt have hp.
-                self.entities.retain(|e| e.hp > 0);
-
-                // Keep bgm playing in a loop
-                if !DISABLE_SFX && !self.sfx["bgm"].playing() {
-                    self.sfx["bgm"].play().unwrap();
-                }
-            }
-        }
-        update_time(self);
+				// If at least one entity has died from low hp, we should make an explosion sound
+				if do_explosion_sound && !DISABLE_SFX {
+					// The `.stop()` method for a ggez audio source doesn't seem to work
+					// correctly, so this is an ugly method of stopping and restarting the
+					// audio. Reload from disk and overwrite existing. Eeewww!
+					*self.sfx.get_mut("explode").unwrap() = audio::Source::new(ctx, "/sounds/explode.wav").expect("Could not load explode.wav");
+					self.sfx["explode"].play().unwrap();
+				}
+				
+        		// Keep bgm playing in a loop
+				if !DISABLE_SFX && !self.sfx["bgm"].playing() {
+					self.sfx["bgm"].play().unwrap();
+				}
+			}
+		}
+		update_time(self);
 
         Ok(())
     }
+
+	/// Draw all the game entities and UI.
     fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
         graphics::set_background_color(ctx, graphics::Color::new(0.0, 0.0, 0.0, 1.0));
         graphics::clear(ctx);
@@ -1024,9 +1004,25 @@ impl event::EventHandler for MainState {
         if keycode == ggez::event::Keycode::Down {
             self.input.down = false;
         }
-        if keycode == ggez::event::Keycode::Space {
-            self.input.shoot = false;
-            self.entities[0].bullet_cooldown = 0;
+		if keycode == ggez::event::Keycode::Space {
+			self.input.shoot = false;
+			self.entities[0].bullet_cooldown = 0;
+		}
+		if keycode == ggez::event::Keycode::B {
+			self.spawner.cooldowns.insert(EntityType::Boss, 0);
         }
+		if keycode == ggez::event::Keycode::E {
+			self.spawner.cooldowns.insert(EntityType::Enemy, 0);
+        }
+		if keycode == ggez::event::Keycode::G {
+			unsafe {
+				if GOD_MODE == false {
+					GOD_MODE = true;
+				}
+				else {
+					GOD_MODE = false;
+				}
+			}
+		}
     }
 }

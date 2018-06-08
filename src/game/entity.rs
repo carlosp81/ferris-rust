@@ -1,21 +1,9 @@
-/*
-Copyright <2018> <River Bartz, Daniel Dupriest, Brandon Goldbeck>
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this 
-software and associated documentation files (the "Software"), to deal in the Software 
-without restriction, including without limitation the rights to use, copy, modify, 
-merge, publish, distribute, sublicense, and/or sell copies of the Software, and to 
-permit persons to whom the Software is furnished to do so, subject to the following 
-conditions:
-The above copyright notice and this permission notice shall be included in all copies
-or substantial portions of the Software.
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
-INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR 
-PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE 
-FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR 
-OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
-DEALINGS IN THE SOFTWARE.
-*/
+// Copyright © 2018
+// "River Bartz"<bpg@pdx.edu>
+// "Daniel Dupriest"<kououken@gmail.com>
+// "Brandon Goldbeck"<rbartz@pdx.edu>
+// This program is licensed under the "MIT License". Please see the file
+// LICENSE in the source distribution of this software for license terms.
 
 extern crate ggez;
 extern crate rand;
@@ -26,6 +14,7 @@ use ggez::Context;
 use game::{MainState, BOSS_BULLET_COOLDOWN, BOSS_BULLET_NUMBER, ENEMY_BULLET_COOLDOWN};
 //use game::rand::Rng;
 
+/// An enum for distinguishing game entity types
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum EntityType {
     Empty,
@@ -43,25 +32,50 @@ pub enum EntityType {
     Shield
 }
 
+/// Used to specify the lifetime of an entity.
+/// Those with `Forever` will never expire, while
+/// those with a `Milliseconds()` value will be
+/// culled after that many milliseconds have elapsed.
 #[derive(Debug)]
 pub enum Lifetime {
     Forever,
     Milliseconds(i64),
 }
 
-// An entity has one of three movement types:
-// - None: The entity is static on screen (text/effects)
-// - Linear: The entity has a constant x and y velocity.
-// - Generated: The entity will use the lambda function to generate an x
-// and y translation value every time it updates. The first parameter is
-// the ms elapsed since the entity spawned, the second is a random number
-// generator, and the third is a unique seed value between -1.0 and 1.0.
+/// An entity has one of three movement types:
+/// - None: The entity is static on screen (text/effects)
+/// - Linear: The entity has a constant x and y velocity.
+/// - Generated: The entity will use the lambda function to generate an x
+/// and y translation value every time it updates. The first parameter is
+/// the ms elapsed since the entity spawned, the second is a random number
+/// generator, and the third is a unique seed value between -1.0 and 1.0.
+/// # Example
+/// For an entity moving in  sine x direction
+/// and stright down y direction.
+/// ```
+/// let g = Generated(|time,_rand,seed| {
+///		let sine = ((time / 1000.0) as f64 ).sine() as f32;
+///		( sine * 10.0, -10.0 )
+///	}
+/// ```
 pub enum Movement {
     None,
     Linear(f32, f32),
     Generated(fn(u64, &mut rand::ThreadRng, f64) -> (f32, f32)),
 }
 
+/// The entity structure is used to represent all
+/// interactive game objects. All variables have above
+/// default value, so you can create an entity with
+/// only the parts you want to customize.
+/// # Example
+/// ```
+/// let e = Entity {
+/// x: 100.0,
+/// y: 200.0,
+/// entity_type: entity::EntityType::Enemy,
+/// };
+/// ```
 pub struct Entity {
     pub angle: f32,
     pub bounds: graphics::Rect,
@@ -79,6 +93,8 @@ pub struct Entity {
     pub y: f32,
 }
 
+/// This allows Entity struct to be created with only
+/// part of their variables defined.
 impl Default for Entity {
     fn default() -> Entity {
         Entity {
@@ -105,7 +121,17 @@ impl Default for Entity {
     }
 }
 
-impl Entity {
+impl Entity {	
+	/// This function moves an entity around by the pixels specified.
+	/// # Example
+	/// ```
+	/// let e = Entity {
+	/// 	x: 10.0,
+	/// 	y: 10.0,
+	/// };
+	/// e.translate(1.0, -1.0);
+	/// assert(e.x == 11.0 && e.y == 9.0);
+	/// ```
     pub fn translate(&mut self, dx: f32, dy: f32) {
         self.x += dx;
         self.y += dy;
