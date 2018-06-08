@@ -47,7 +47,6 @@ const SHOW_INPUT_DEBUG: bool = false;
 const SHUTOFF_LIFETIME: i64 = 500;
 const SPLAT_LIFETIME: i64 = 500;
 
-static mut MAX_ENTITY_COUNT: i64 = 0;
 static mut GOD_MODE: bool = false;
 
 /// Represents the state of player controls
@@ -180,7 +179,7 @@ impl MainState {
         s.textures.insert(
             entity::EntityType::Shield,
             vec![graphics::Image::new(ctx, "/texture/temp_shield.png").unwrap()],
-        )
+        );
         
 		// Set up music and sound effects
 		s.sfx.insert("player_shot", audio::Source::new(ctx, "/sounds/player_shot.wav")?);
@@ -269,14 +268,16 @@ fn handle_collisions(state: &mut MainState) {
                     match state.entities[threat_idx].entity_type {
                         EntityType::Enemy | EntityType::EnemyBlueScreen => {
                             if colliding(state, entity_idx, threat_idx) {
-                                if !GOD_MODE {
-                                    if state.shield_active {
-                                        state.shield_active = false;
-                                    } else {
-                                        state.entities[entity_idx].hp -=
-                                        state.entities[threat_idx].damage;
-                                    }
-                                }
+								unsafe {
+									if !GOD_MODE {
+										if state.shield_active {
+											state.shield_active = false;
+										} else {
+											state.entities[entity_idx].hp -=
+											state.entities[threat_idx].damage;
+										}
+									}
+								}
                                 state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
                                 if !DISABLE_SFX {
                                     state.sfx["hit"].play().unwrap();
@@ -285,14 +286,16 @@ fn handle_collisions(state: &mut MainState) {
                         }
                         EntityType::Boss => {
                             if colliding(state, entity_idx, threat_idx) {
-                                if !GOD_MODE {
-                                    if state.shield_active {
-                                        state.shield_active = false;
-                                    } else {
-                                        state.entities[entity_idx].hp -=
-                                        state.entities[threat_idx].damage;
-                                    }
-                                }
+								unsafe {
+									if !GOD_MODE {
+										if state.shield_active {
+											state.shield_active = false;
+										} else {
+											state.entities[entity_idx].hp -=
+											state.entities[threat_idx].damage;
+										}
+									}
+								}
                                 if !DISABLE_SFX {
                                     state.sfx["hit"].play().unwrap();
                                 }
@@ -300,14 +303,16 @@ fn handle_collisions(state: &mut MainState) {
                         }
                         EntityType::EnemyBullet => {
                             if colliding(state, entity_idx, threat_idx) {
-                                if !GOD_MODE {
-                                    if state.shield_active {
-                                        state.shield_active = false;
-                                    } else {
-                                        state.entities[entity_idx].hp -=
-                                        state.entities[threat_idx].damage;
-                                    }
-                                }
+								unsafe {
+									if !GOD_MODE {
+										if state.shield_active {
+											state.shield_active = false;
+										} else {
+											state.entities[entity_idx].hp -=
+											state.entities[threat_idx].damage;
+										}
+									}
+								}
                                 state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
                                 if !DISABLE_SFX {
                                     state.sfx["hit"].play().unwrap();
@@ -430,19 +435,10 @@ impl event::EventHandler for MainState {
             ctx.quit()?;
         }
 
-        // Output max entities for debugging
-        let number = self.entities.len() as i64;
-        unsafe {
-            if number > MAX_ENTITIES {
-                MAX_ENTITIES = number;
-                //println!("Max entities = {}", number);
-            }
-        }
-
-        match self.game_state {
+        match self.game_mode {
             GameMode::Menu => {
                 if self.input.shoot {
-                    self.game_state = GameMode::Game;
+                    self.game_mode = GameMode::Game;
                     new_game(self, ctx);
                 }
             }
@@ -451,7 +447,7 @@ impl event::EventHandler for MainState {
 
                 // If the player died, gameover!
                 if self.entities.len() == 0 || self.entities[0].entity_type != EntityType::Player {
-                    self.game_state = GameMode::Menu;
+                    self.game_mode = GameMode::Menu;
                     let user = std::env::var("USERNAME").unwrap();
                     let text = self.score.to_string() + " " + &user;
                     self.high_scores.push(text);
@@ -479,25 +475,12 @@ impl event::EventHandler for MainState {
                     None => (),
                 }
 
-                self.score_text = graphics::Text::new(
-                    ctx,
-                    &format!("Score: {}", &self.score.to_string()),
-                    &self.score_font,
-                ).unwrap();
-
                 // Run thru the list of entities
                 for i in 0..self.entities.len() {
                     let mut e = self.entities.remove(i);
                     e.update(self, ctx);
                     self.entities.insert(i, e);
                 }
-
-                // Set the score variable
-                self.score_text = graphics::Text::new(
-                    ctx,
-                    &format!("Score: {}", &self.score.to_string()),
-                    &self.score_font,
-                ).unwrap();
 
                 if self.input.shoot {
                     if self.entities[0].bullet_cooldown == 0 {
@@ -601,14 +584,14 @@ impl event::EventHandler for MainState {
                                     - (self.textures[&entity::EntityType::PlayerBullet][0].height() as f32
                                         / 2.0);
                                 let mut pb1 = self.spawner.player_bullet_spawner(x1, y);
-                                pb1.movement = Movement::Linear(-BULLET_SPEED / 2_f32, -BULLET_SPEED);
+                                pb1.movement = Movement::Linear(-PLAYER_BULLET_SPEED / 2_f32, -PLAYER_BULLET_SPEED);
                                 self.entities.push(pb1);
 
                                 let pb2 = self.spawner.player_bullet_spawner(x2, y);
                                 self.entities.push(pb2);
 
                                 let mut pb3 = self.spawner.player_bullet_spawner(x3, y);
-                                pb3.movement = Movement::Linear(BULLET_SPEED / 2_f32, -BULLET_SPEED);
+                                pb3.movement = Movement::Linear(PLAYER_BULLET_SPEED / 2_f32, -PLAYER_BULLET_SPEED);
                                 self.entities.push(pb3);
                             }
 
@@ -633,14 +616,14 @@ impl event::EventHandler for MainState {
                                     - (self.textures[&entity::EntityType::PlayerBullet][0].height() as f32
                                         / 2.0);
                                 let mut pb1 = self.spawner.player_bullet_spawner(x1, y);
-                                pb1.movement = Movement::Linear(-BULLET_SPEED / 2_f32, -BULLET_SPEED);
+                                pb1.movement = Movement::Linear(-PLAYER_BULLET_SPEED / 2_f32, -PLAYER_BULLET_SPEED);
                                 self.entities.push(pb1);
 
                                 let pb2 = self.spawner.player_bullet_spawner(x2, y);
                                 self.entities.push(pb2);
 
                                 let mut pb3 = self.spawner.player_bullet_spawner(x3, y);
-                                pb3.movement = Movement::Linear(BULLET_SPEED / 2_f32, -BULLET_SPEED);
+                                pb3.movement = Movement::Linear(PLAYER_BULLET_SPEED / 2_f32, -PLAYER_BULLET_SPEED);
                                 self.entities.push(pb3);
                             }
                         }
@@ -731,7 +714,7 @@ impl event::EventHandler for MainState {
         graphics::set_background_color(ctx, graphics::Color::new(0.0, 0.0, 0.0, 1.0));
         graphics::clear(ctx);
 
-        match self.game_state {
+        match self.game_mode {
             GameMode::Menu => {
                 // Draw two layers of two background copies staggered according to elapsed_ms
                 let background_y = ((self.elapsed_ms / 40 % 1920) as i32 / 2 * 2) as f32;
@@ -761,11 +744,12 @@ impl event::EventHandler for MainState {
                 graphics::draw(ctx, &text, graphics::Point2::new(500.0, 300.0), 0.0)?;
 
                 for i in 0..self.high_scores.len() {
-                    self.score_text =
+                    
+					text =
                         graphics::Text::new(ctx, &self.high_scores[i], &self.score_font).unwrap();
                     graphics::draw(
                         ctx,
-                        &self.score_text,
+                        &text,
                         graphics::Point2::new(500.0, 330.0 + (i as f32) * 30_f32),
                         0.0,
                     )?;
@@ -939,10 +923,16 @@ impl event::EventHandler for MainState {
                     )?;
                 }
 
+				
                 // Draw player score
-                graphics::draw(
+                let text = graphics::Text::new(
                     ctx,
-                    &self.score_text,
+                    &format!("Score: {}", &self.score.to_string()),
+                    &self.score_font,
+                ).unwrap();
+				graphics::draw(
+                    ctx,
+                    &text,
                     graphics::Point2::new(10.0, 10.0),
                     0.0,
                 )?;
