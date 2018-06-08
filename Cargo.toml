@@ -7,4 +7,5 @@ build = "build.rs"
 
 [dependencies]
 ggez = "0.4"
+lazy_static = "*"
 rand = "0.4"

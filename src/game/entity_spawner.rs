@@ -1,35 +1,24 @@
-/*
-Copyright <2018> <River Bartz, Daniel Dupriest, Brandon Goldbeck>
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this 
-software and associated documentation files (the "Software"), to deal in the Software 
-without restriction, including without limitation the rights to use, copy, modify, 
-merge, publish, distribute, sublicense, and/or sell copies of the Software, and to 
-permit persons to whom the Software is furnished to do so, subject to the following 
-conditions:
-The above copyright notice and this permission notice shall be included in all copies
-or substantial portions of the Software.
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
-INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR 
-PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE 
-FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR 
-OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
-DEALINGS IN THE SOFTWARE.
-*/
+// Copyright © 2018
+// "River Bartz"<bpg@pdx.edu>
+// "Daniel Dupriest"<kououken@gmail.com>
+// "Brandon Goldbeck"<rbartz@pdx.edu>
+// This program is licensed under the "MIT License". Please see the file
+// LICENSE in the source distribution of this software for license terms.
 
 extern crate ggez;
 extern crate rand;
 use ggez::{Context,graphics};
 use self::rand::Rng;
 use game::entity::{Lifetime, Movement, Entity, EntityType};
-use game::{ENEMY_NAMES, BULLET_SPEED, SPLAT_LIFETIME, SHUTOFF_LIFETIME, ENEMY_LIFETIME};
+use game::{ENEMY_NAMES, ENEMY_BULLET_SPEED, PLAYER_BULLET_SPEED, SPLAT_LIFETIME, SHUTOFF_LIFETIME, ENEMY_LIFETIME};
 use std;
 
-const ENEMY_COOLDOWN: i64 = 1_500;
+const ENEMY_COOLDOWN: i64 = 1_000;
 const ENEMY_COOLDOWN_BLUESCREEN: i64 = 6_000;
 const ENEMY_COOLDOWN_BOSS: i64 = 60_000;
-const POWERUP_COOLDOWN: i64 = 10_000;
+const POWERUP_COOLDOWN: i64 = 20_000;
 
+/// This keeps track of cooldowns for various entity types and spawns when necessary
 pub struct EntitySpawner {
 	pub _screen_height: u32,
 	pub screen_width: u32,
@@ -38,6 +27,7 @@ pub struct EntitySpawner {
 }
 
 impl EntitySpawner {
+	/// Create a new entity spawner.
     pub fn new(ctx: &Context) -> EntitySpawner {        
         let mut p = EntitySpawner {
 			_screen_height: ctx.conf.window_mode.height,
@@ -46,6 +36,7 @@ impl EntitySpawner {
             cooldowns: std::collections::HashMap::new(),
         };
 
+		// Set up the basic cooldowns
         p.cooldowns.insert(EntityType::Enemy, ENEMY_COOLDOWN );
         p.cooldowns.insert(EntityType::EnemyBlueScreen, ENEMY_COOLDOWN_BLUESCREEN );
 		p.cooldowns.insert(EntityType::Boss, ENEMY_COOLDOWN_BOSS );
@@ -54,6 +45,7 @@ impl EntitySpawner {
         p
     }
 
+	/// Generates a binary splat entity
     pub fn spawn_splat(&self, x: f32, y: f32) -> Entity {
         let splat = Entity {
 			name: "splat".to_string(),
@@ -79,6 +71,7 @@ impl EntitySpawner {
         splat
     }
 
+	/// Generates a screen shutoff entity
     pub fn spawn_shutoff(&self, x: f32, y: f32) -> Entity {
         let shutoff = Entity {
 			name: "shutoff".to_string(),
@@ -103,7 +96,8 @@ impl EntitySpawner {
         };
         shutoff
     }
-    // Spawns bullets for the player
+	
+    /// Spawns bullets for the player
     pub fn player_bullet_spawner(&self, x: f32, y: f32) -> Entity {
 		let mut bullet = Entity::default();
 		bullet.x = x;
@@ -114,7 +108,7 @@ impl EntitySpawner {
             w: 50.0,
             h: 50.0,
         };
-		bullet.movement = Movement::Linear(0.0, -BULLET_SPEED);
+		bullet.movement = Movement::Linear(0.0, -PLAYER_BULLET_SPEED);
         bullet.lifetime = Lifetime::Milliseconds(2_000);
 		bullet.entity_type = EntityType::PlayerBullet;
 		bullet.name = "player_bullet".to_string();
@@ -122,7 +116,7 @@ impl EntitySpawner {
         bullet
     }
 
-    // Spawns bullets for the enemy
+    /// Spawns bullets for the enemy
     pub fn spawn_enemy_bullet(&self, x: f32, y: f32, angle: f32) -> Entity {
         let mut bullet = Entity::default();
         bullet.x = x;
@@ -133,7 +127,7 @@ impl EntitySpawner {
             w: 25.0,
             h: 25.0,
         };
-		bullet.movement = Movement::Linear(angle.cos() * BULLET_SPEED, -angle.sin() * BULLET_SPEED);
+		bullet.movement = Movement::Linear(angle.cos() * ENEMY_BULLET_SPEED, -angle.sin() * ENEMY_BULLET_SPEED);
         bullet.lifetime = Lifetime::Milliseconds(8_000);
 		bullet.entity_type = EntityType::EnemyBullet;
 		bullet.name = "player_bullet".to_string();
@@ -141,7 +135,8 @@ impl EntitySpawner {
         bullet
     }
 
-    pub fn spawn_enemy(&self, seed: f64, name: &str, enemy_type: u8) -> Entity {
+	/// Spawns an enemy entity of a specific type.
+    pub fn spawn_enemy(&self, seed: f64, name: &str, enemy_type: EntityType) -> Entity {
         // Default entity
 		let mut e = Entity {
 			name: name.to_string(),
@@ -175,7 +170,7 @@ impl EntitySpawner {
         // Certain enemies recieve different traits
         match enemy_type {
 			// Blue screen
-            2 => {
+            EntityType::EnemyBlueScreen => {
 				e.name = "BSOD".to_string();
 				e.entity_type = EntityType::EnemyBlueScreen;
                 e.hp = 2;
@@ -188,7 +183,7 @@ impl EntitySpawner {
                     }
                 );
             },
-			3 => {
+			EntityType::Boss => {
 				e.name = "ANSI C".to_string();
 				e.entity_type = EntityType::Boss;
 				e.hp = 25;
@@ -265,7 +260,7 @@ impl EntitySpawner {
                 let seed: f64 = self.rng.gen_range(-1.0, 1.0);
                 
                 // Create enemy.
-                let mut entity = self.spawn_enemy(seed, name, 1);
+                let mut entity = self.spawn_enemy(seed, name, EntityType::Enemy);
                 entity.x = self.rng.gen_range(0.0, self.screen_width as f32);
                 entity.y = -70.0;
                 return Some(entity);
@@ -279,7 +274,7 @@ impl EntitySpawner {
                 let seed: f64 = self.rng.gen_range(-1.0, 1.0);
                 
                 // Create enemy.
-                let mut entity = self.spawn_enemy(seed, name, 2);
+                let mut entity = self.spawn_enemy(seed, name, EntityType::EnemyBlueScreen);
                 entity.x = self.rng.gen_range(0.0, self.screen_width as f32);
                 entity.y = -70.0;
                 return Some(entity);
@@ -292,7 +287,7 @@ impl EntitySpawner {
                 let seed: f64 = self.rng.gen_range(-1.0, 1.0);
                 
                 // Create enemy.
-                let mut entity = self.spawn_enemy(seed, "ANSI C", 3);
+                let mut entity = self.spawn_enemy(seed, "ANSI C", EntityType::Boss);
                 entity.x = self.screen_width as f32 / 2.0;
                 entity.y = -200.0;
                 return Some(entity);
