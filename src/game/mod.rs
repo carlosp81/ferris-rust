@@ -21,8 +21,8 @@ use self::entity::{Lifetime, EntityType, Movement};
 
 // Constants
 const ANIMATION_FRAMERATE: f64 = 2.283 * 2.0;
-const BOSS_BULLET_COOLDOWN: i64 = 150;
-const BOSS_BULLET_NUMBER: i64 = 6;
+const BOSS_BULLET_COOLDOWN: i64 = 170;
+const BOSS_BULLET_NUMBER: i64 = 4;
 const DEFAULT_FONT: &str = "/font/PressStart2P.ttf";
 const DEFAULT_FONT_SIZE: u32 = 20;
 const DISABLE_SFX: bool = false;
@@ -31,15 +31,18 @@ const ENEMY_BULLET_COOLDOWN: i64 = 4_000;
 const ENEMY_BULLET_SPEED: f32 = 400.0;
 const ENEMY_FONT_SIZE: u32 = 12;
 const ENEMY_LIFETIME: i64 = 100_000;
-const ENEMY_NAMES: [&str;4] = [
+const ENEMY_NAMES: [&str;7] = [
 	"NULL POINTER",
 	"DANGLING REF",
 	"SEGFAULT",
 	"DOUBLE FREE",
+	"INTEGER OVERFLOW",
+	"DEADLOCK",
+	"RACE CONDITION",
 ];
 const PIXEL_SKIP: i32 = 2;
 const PLAYER_BULLET_COOLDOWN: i64 = 250;
-const PLAYER_BULLET_SPEED: f32 = 800.0;
+const PLAYER_BULLET_SPEED: f32 = 600.0;
 const SHOW_INPUT_DEBUG: bool = false;
 const SHUTOFF_LIFETIME: i64 = 500;
 const SPLAT_LIFETIME: i64 = 500;
@@ -616,9 +619,8 @@ impl event::EventHandler for MainState {
 				// Draw title
 				graphics::draw(ctx, &self.title, graphics::Point2::new(229.0, 100.0), 0.0)?;
 				
-				// Draw "press spacebar" text
+				// Draw "press spacebar" text blinking
 				let mut text = graphics::Text::new(ctx, &format!("- PRESS SPACEBAR -"), &self.score_font).unwrap();
-				// Blink the text
 				if self.elapsed_ms % 1000 < 500 {
 					
 					graphics::draw(ctx, &text, graphics::Point2::new(400.0, 650.0), 0.0)?;
@@ -702,7 +704,7 @@ impl event::EventHandler for MainState {
 							Lifetime::Forever => (),
 							Lifetime::Milliseconds(r) => {
 								let fraction_of_life = ( ENEMY_LIFETIME as f32 - r as f32 ) / ENEMY_LIFETIME as f32;
-								let mut alpha = 1.0 - fraction_of_life * 20.0;
+								let mut alpha = 1.0 - fraction_of_life * 15.0;
 								if alpha < 0.0 {
 									alpha = 0.0;
 								}

@@ -4,7 +4,6 @@ version = "0.9.1"    # the current version, obeying semver
 authors = ["bpg@pdx.edu", "kououken@gmail.com", "rbartz.pdx.edu"]
 build = "build.rs"
 
-
 [dependencies]
 ggez = "0.4"
 lazy_static = "*"

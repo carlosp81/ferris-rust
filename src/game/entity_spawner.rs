@@ -210,6 +210,7 @@ impl EntitySpawner {
         e
     }
 
+	/// Spawns a power bomb
     pub fn spawn_powerup(&self) -> Entity {
         let e = Entity {
 			name: "power bomb".to_string(),
@@ -236,8 +237,8 @@ impl EntitySpawner {
         e
     }
 
-    // Update the cooldowns on all entity types that have them. If a cooldown triggers, 
-    // spawn that entity and return it.
+    /// Updates the cooldowns on all entity types that have them.
+	/// If a cooldown triggers, spawn that entity and return it.
     pub fn update(&mut self, delta_ms: u64) -> Option<Entity> {
         
         // We dont really care about matching the player type, so we use that as a dummy.
