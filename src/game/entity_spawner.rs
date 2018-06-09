@@ -16,9 +16,9 @@ use std;
 const ENEMY_COOLDOWN: i64 = 1_000;
 const ENEMY_COOLDOWN_BLUESCREEN: i64 = 6_000;
 const ENEMY_COOLDOWN_BOSS: i64 = 60_000;
-const POWERUP1_COOLDOWN: i64 = 25_000;
-const POWERUP2_COOLDOWN: i64 = 12_000;
-const POWERUP3_COOLDOWN: i64 = 18_000;
+const POWERBOMB_COOLDOWN: i64 = 25_000;
+const UPGRADE_COOLDOWN: i64 = 12_000;
+const SHIELD_COOLDOWN: i64 = 18_000;
 
 /// This keeps track of cooldowns for various entity types and spawns when necessary
 pub struct EntitySpawner {
@@ -43,9 +43,9 @@ impl EntitySpawner {
         p.cooldowns
             .insert(EntityType::EnemyBlueScreen, ENEMY_COOLDOWN_BLUESCREEN);
         p.cooldowns.insert(EntityType::Boss, ENEMY_COOLDOWN_BOSS);
-        p.cooldowns.insert(EntityType::Powerup, POWERUP1_COOLDOWN);
-        p.cooldowns.insert(EntityType::GunUpgrade, POWERUP2_COOLDOWN);
-        p.cooldowns.insert(EntityType::Shield, POWERUP3_COOLDOWN);
+        p.cooldowns.insert(EntityType::Powerbomb, POWERBOMB_COOLDOWN);
+        p.cooldowns.insert(EntityType::GunUpgrade, UPGRADE_COOLDOWN);
+        p.cooldowns.insert(EntityType::Shield, SHIELD_COOLDOWN);
 
         p
     }
@@ -215,10 +215,10 @@ impl EntitySpawner {
     }
 
 	/// Spawns a power bomb
-    pub fn spawn_powerup(&self) -> Entity {
+    pub fn spawn_powerbomb(&self) -> Entity {
         let e = Entity {
             name: "power bomb".to_string(),
-            entity_type: EntityType::Powerup,
+            entity_type: EntityType::Powerbomb,
             x: 0.0,
             y: 0.0,
             hp: 1,
@@ -237,7 +237,7 @@ impl EntitySpawner {
             bullet_cooldown: 0,
             angle: 0.0,
         };
-        // Return powerup entity option type.
+        // Return powerbomb entity option type.
         e
     }
 
@@ -264,7 +264,7 @@ impl EntitySpawner {
             bullet_cooldown: 0,
             angle: 0.0,
         };
-        // Return powerup entity option type.
+        // Return upgrade entity option type.
         e
     }
 
@@ -290,7 +290,7 @@ impl EntitySpawner {
             bullet_cooldown: 0,
             angle: 0.0,
         };
-        // Return powerup entity option type.
+        // Return shield entity option type.
         e
     }
 
@@ -350,35 +350,35 @@ impl EntitySpawner {
                 entity.y = -200.0;
                 return Some(entity);
             }
-            EntityType::Powerup => {
+            EntityType::Powerbomb => {
                 // Reset cooldown.
-                self.cooldowns.insert(entity_type, POWERUP1_COOLDOWN);
+                self.cooldowns.insert(entity_type, POWERBOMB_COOLDOWN);
 
-                // Create powerup.
-                let mut powerup = self.spawn_powerup();
-                powerup.x = self.rng.gen_range(0.0, self.screen_width as f32);
-                powerup.y = -45.0;
-                return Some(powerup);
+                // Create Powerbomb.
+                let mut powerbomb = self.spawn_powerbomb();
+                powerbomb.x = self.rng.gen_range(0.0, self.screen_width as f32);
+                powerbomb.y = -45.0;
+                return Some(powerbomb);
             }
             EntityType::GunUpgrade => {
                 // Reset cooldown.
-                self.cooldowns.insert(entity_type, POWERUP2_COOLDOWN);
+                self.cooldowns.insert(entity_type, UPGRADE_COOLDOWN);
 
-                // Create powerup.
-                let mut powerup = self.spawn_gunupgrade();
-                powerup.x = self.rng.gen_range(0.0, self.screen_width as f32);
-                powerup.y = -45.0;
-                return Some(powerup);
+                // Create upgrade.
+                let mut upgrade = self.spawn_gunupgrade();
+                upgrade.x = self.rng.gen_range(0.0, self.screen_width as f32);
+                upgrade.y = -45.0;
+                return Some(upgrade);
             }
             EntityType::Shield => {
                 // Reset cooldown.
-                self.cooldowns.insert(entity_type, POWERUP3_COOLDOWN);
+                self.cooldowns.insert(entity_type, SHIELD_COOLDOWN);
 
-                // Create powerup.
-                let mut powerup = self.spawn_shield();
-                powerup.x = self.rng.gen_range(0.0, self.screen_width as f32);
-                powerup.y = -45.0;
-                return Some(powerup);
+                // Create shield.
+                let mut shield = self.spawn_shield();
+                shield.x = self.rng.gen_range(0.0, self.screen_width as f32);
+                shield.y = -45.0;
+                return Some(shield);
             }
             _ => (),
         }

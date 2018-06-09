@@ -25,7 +25,7 @@ pub enum EntityType {
     EnemyBlueScreen,
     Life,
     Player,
-    Powerup,
+    Powerbomb,
     Splat,
     Shutoff,
     GunUpgrade,

@@ -40,6 +40,7 @@ const ENEMY_NAMES: [&str;7] = [
 	"DEADLOCK",
 	"RACE CONDITION",
 ];
+const MAX_GUN_LEVEL: u32 = 5;
 const PIXEL_SKIP: i32 = 2;
 const PLAYER_BULLET_COOLDOWN: i64 = 250;
 const PLAYER_BULLET_SPEED: f32 = 600.0;
@@ -164,9 +165,9 @@ impl MainState {
 			] );
 		s.textures.insert(entity::EntityType::PlayerBullet, vec![graphics::Image::new(ctx, "/texture/player_bullet.png").unwrap()] );
 		s.textures.insert(entity::EntityType::EnemyBullet, vec![graphics::Image::new(ctx, "/texture/enemy_bullet.png").unwrap()] );
-		s.textures.insert(entity::EntityType::Powerup, vec![
-			graphics::Image::new(ctx, "/texture/powerup0.png").unwrap(),
-			graphics::Image::new(ctx, "/texture/powerup1.png").unwrap(),
+		s.textures.insert(entity::EntityType::Powerbomb, vec![
+			graphics::Image::new(ctx, "/texture/powerbomb0.png").unwrap(),
+			graphics::Image::new(ctx, "/texture/powerbomb1.png").unwrap(),
 		] );
 		s.textures.insert(entity::EntityType::Splat, vec![graphics::Image::new(ctx, "/texture/splat.png").unwrap()] );
 		s.textures.insert(entity::EntityType::Shutoff, vec![graphics::Image::new(ctx, "/texture/shutoff.png").unwrap()] );
@@ -212,7 +213,7 @@ pub fn new_game(state: &mut MainState, ctx: &mut Context) {
     // Clear out old entities
     state.entities.clear();
 
-    // Reset the score
+    // Reset the score and powerups
     state.score = 0;
     state.gun_level = 0;
     state.shield_active = false;
@@ -258,69 +259,80 @@ pub fn new_game(state: &mut MainState, ctx: &mut Context) {
 
 /// This function handles all entity-entity interactions when colliding
 fn handle_collisions(state: &mut MainState) {
-
+	let mut play_hit_sound = false;
 	// Iterate through all entities
 	for entity_idx in 0..state.entities.len() {
+	
 		match state.entities[entity_idx].entity_type {
+		
 			// In the case of player
 			EntityType::Player => {
                 for threat_idx in 0..state.entities.len() {
                     match state.entities[threat_idx].entity_type {
-                        EntityType::Enemy | EntityType::EnemyBlueScreen => {
+                        
+						// When player collides with enemy
+						EntityType::Enemy | EntityType::EnemyBlueScreen | EntityType::Boss => {
                             if colliding(state, entity_idx, threat_idx) {
-								unsafe {
-									if !GOD_MODE {
-										if state.shield_active {
-											state.shield_active = false;
-										} else {
-											state.entities[entity_idx].hp -=
-											state.entities[threat_idx].damage;
+							
+								// If shield is active
+								if state.shield_active {
+									
+									// Remove shield
+									state.shield_active = false;
+								} else {
+								
+									// Otherwise hurt player
+									unsafe {
+										if !GOD_MODE {
+											state.entities[entity_idx].hp -= state.entities[threat_idx].damage;
 										}
 									}
 								}
-                                state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
-                                if !DISABLE_SFX {
-                                    state.sfx["hit"].play().unwrap();
-                                }
-                            }
-                        }
-                        EntityType::Boss => {
-                            if colliding(state, entity_idx, threat_idx) {
-								unsafe {
-									if !GOD_MODE {
-										if state.shield_active {
-											state.shield_active = false;
-										} else {
-											state.entities[entity_idx].hp -=
-											state.entities[threat_idx].damage;
-										}
-									}
+								
+								// Destroy enemies other than boss
+								if state.entities[threat_idx].entity_type != EntityType::Boss {
+									state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
 								}
-                                if !DISABLE_SFX {
-                                    state.sfx["hit"].play().unwrap();
-                                }
+								
+								// SFX
+								play_hit_sound = true;
                             }
-                        }
+                        },
+						
+						// When player collides with enemy bullet
                         EntityType::EnemyBullet => {
                             if colliding(state, entity_idx, threat_idx) {
-								unsafe {
-									if !GOD_MODE {
-										if state.shield_active {
-											state.shield_active = false;
-										} else {
+								
+								// If shield is active
+								if state.shield_active {
+								
+									// Disable shield
+									state.shield_active = false;
+								
+								} else {
+								
+									// Otherwise hurt player
+									unsafe {
+										if !GOD_MODE {
 											state.entities[entity_idx].hp -=
 											state.entities[threat_idx].damage;
 										}
 									}
 								}
+								
+								// Destroy bullet
                                 state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
-                                if !DISABLE_SFX {
-                                    state.sfx["hit"].play().unwrap();
-                                }
+                                
+								// SFX
+								play_hit_sound = true;
                             }
-                        }
-                        EntityType::Powerup => {
+                        },
+						
+						// When player collides with power bomb
+                        EntityType::Powerbomb => {
                             if colliding(state, entity_idx, threat_idx) {
+							
+								// Destroy all bullets and enemies other than boss
                                 for enemy_idx in 0..state.entities.len() {
                                     if state.entities[enemy_idx].entity_type == EntityType::Enemy
                                         || state.entities[enemy_idx].entity_type
@@ -333,27 +345,42 @@ fn handle_collisions(state: &mut MainState) {
                                         state.entities[enemy_idx].hp = 0;
                                     }
                                 }
+								
+								// Kill powerbomb
                                 state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
                             }
-                        }
+                        },
+						
+						// When player collides with gun upgrade
                         EntityType::GunUpgrade => {
                             if colliding(state, entity_idx, threat_idx) {
+							
                                 // Upgrade the player's gun
-                                state.gun_level = state.gun_level + 1;
+                                if state.gun_level < MAX_GUN_LEVEL {
+									state.gun_level += 1;
+								}
+								
+								// Remove upgrade
                                 state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
                             }
-                        }
+                        },
+						
+						// When player collides with shield
                         EntityType::Shield => {
                             if colliding(state, entity_idx, threat_idx) {
-                                // Upgrade the player's gun
+							
+                                // Enable shield
                                 state.shield_active = true;
+								
+								// Remove shield powerup
                                 state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
                             }
-                        }
-                        _ => (),
+                        },
+                        
+						_ => (),
                     }
-                }
-            }
+				}
+            },
 			
 			// In the case of an enemy or boss
 			EntityType::Enemy | EntityType::EnemyBlueScreen | EntityType::Boss => {
@@ -370,10 +397,7 @@ fn handle_collisions(state: &mut MainState) {
 								// Kill the bullet
 								state.entities[threat_idx].lifetime = Lifetime::Milliseconds(0);
 								
-								// Play hit sound
-								if !DISABLE_SFX {
-									state.sfx["hit"].play().unwrap();
-								}
+								play_hit_sound = true;
                             }
 						},
 						
@@ -384,6 +408,11 @@ fn handle_collisions(state: &mut MainState) {
 
 			_ => (),
 		}
+	}
+	
+
+	if !DISABLE_SFX && play_hit_sound {
+		state.sfx["hit"].play().unwrap();
 	}
 }
 
@@ -429,6 +458,7 @@ fn update_time(state: &mut MainState) {
 /// The `EventHandler` trait also contains callbacks for event handling
 /// that you can override if you wish, but the defaults are fine.
 impl event::EventHandler for MainState {
+
 	/// Update game objects and do game logic loop
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
         if self.quit {
@@ -441,17 +471,25 @@ impl event::EventHandler for MainState {
                     self.game_mode = GameMode::Game;
                     new_game(self, ctx);
                 }
-            }
+            },
+			
+			// If we are in the game
             GameMode::Game => {
                 handle_collisions(self);
 
                 // If the player died, gameover!
                 if self.entities.len() == 0 || self.entities[0].entity_type != EntityType::Player {
                     self.game_mode = GameMode::Menu;
-                    let user = std::env::var("USERNAME").unwrap();
-                    let text = self.score.to_string() + " " + &user;
-                    self.high_scores.push(text);
-                    // Reset music
+                    
+					// Write high score
+					let user = std::env::var("USERNAME").unwrap();
+                    let total = self.elapsed_ms / 1000;
+					let minutes = total / 60;
+					let seconds = total % 60;
+					let text = format!("{:10} {:10}   {:02}:{:02}", self.score.to_string(), &user, minutes, seconds);
+self.high_scores.push(text);
+					
+                    // Pause game for a moment
                     let pause = std::time::Duration::from_millis(500);
                     std::thread::sleep(pause);
 
@@ -471,17 +509,18 @@ impl event::EventHandler for MainState {
                 match self.spawner.update(self.delta_ms) {
                     Some(e) => {
                         self.entities.push(e);
-                    }
+                    },
                     None => (),
                 }
 
-                // Run thru the list of entities
+                // Run each entity's update function
                 for i in 0..self.entities.len() {
                     let mut e = self.entities.remove(i);
                     e.update(self, ctx);
                     self.entities.insert(i, e);
                 }
 
+				// If player is firing
                 if self.input.shoot {
                     if self.entities[0].bullet_cooldown == 0 {
 
@@ -517,7 +556,7 @@ impl event::EventHandler for MainState {
                                         / 2.0);
                                 let pb = self.spawner.player_bullet_spawner(x, y);
                                 self.entities.push(pb);
-                            }
+                            },
                             
                             // Third level up is a very slow double shot gun
                             2 => {
@@ -539,7 +578,7 @@ impl event::EventHandler for MainState {
                                 self.entities.push(pb1);
                                 let pb2 = self.spawner.player_bullet_spawner(x2, y);
                                 self.entities.push(pb2);
-                            }
+                            },
 
                             // 4th powerup is a slow double gun
                             3 => {
@@ -561,7 +600,7 @@ impl event::EventHandler for MainState {
                                 self.entities.push(pb1);
                                 let pb2 = self.spawner.player_bullet_spawner(x2, y);
                                 self.entities.push(pb2);
-                            }
+                            },
 
                             // 5th powerup is a slow tri gun
                             4 => {
@@ -593,7 +632,7 @@ impl event::EventHandler for MainState {
                                 let mut pb3 = self.spawner.player_bullet_spawner(x3, y);
                                 pb3.movement = Movement::Linear(PLAYER_BULLET_SPEED / 2_f32, -PLAYER_BULLET_SPEED);
                                 self.entities.push(pb3);
-                            }
+                            },
 
                             // 6th powerup is MAX LEVEL!!
                             _ => {
@@ -625,7 +664,7 @@ impl event::EventHandler for MainState {
                                 let mut pb3 = self.spawner.player_bullet_spawner(x3, y);
                                 pb3.movement = Movement::Linear(PLAYER_BULLET_SPEED / 2_f32, -PLAYER_BULLET_SPEED);
                                 self.entities.push(pb3);
-                            }
+                            },
                         }
                         
                         if !DISABLE_SFX {
@@ -638,10 +677,11 @@ impl event::EventHandler for MainState {
                     }
                 }
 
+				// Boolean to sound explosion if necessary
+				let mut play_explosion_sound = false;
+				
+				// Create vector of dying entities
                 let mut dying_entities: Vec<usize> = vec![];
-
-                // Boolean to sound an explosion if necessary
-                let mut do_explosion_sound = false;
 
                 // Grab the dying entities.
                 for all_idx in 0..self.entities.len() {
@@ -660,12 +700,16 @@ impl event::EventHandler for MainState {
 
                     if dying {
                         // Check for any entities dying by low hp.
-                        if e.hp <= 0 {
-                            // Gain score points
-                            self.score += 10;
-                            do_explosion_sound = true;
-                        }
-
+                        if e.hp <= 0
+							&& e.entity_type == EntityType::Enemy
+							|| e.entity_type == EntityType::EnemyBlueScreen
+							|| e.entity_type == EntityType::Boss {
+							
+							// Gain score points
+							self.score += 10;
+							play_explosion_sound = true;
+						}		
+					
                         // 100% guarentee we can kill off the target by hp alone.
 						e.hp = 0;
 						dying_entities.push(all_idx);
@@ -690,7 +734,7 @@ impl event::EventHandler for MainState {
 				});
 
 				// If at least one entity has died from low hp, we should make an explosion sound
-				if do_explosion_sound && !DISABLE_SFX {
+				if !DISABLE_SFX && play_explosion_sound {
 					// The `.stop()` method for a ggez audio source doesn't seem to work
 					// correctly, so this is an ugly method of stopping and restarting the
 					// audio. Reload from disk and overwrite existing. Eeewww!
@@ -704,306 +748,256 @@ impl event::EventHandler for MainState {
 				}
 			}
 		}
+		
 		update_time(self);
 
         Ok(())
     }
 
 	/// Draw all the game entities and UI.
-    fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
-        graphics::set_background_color(ctx, graphics::Color::new(0.0, 0.0, 0.0, 1.0));
-        graphics::clear(ctx);
+	fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
+		graphics::set_background_color(ctx, graphics::Color::new(0.0, 0.0, 0.0, 1.0));
+		graphics::clear(ctx);
 
-        match self.game_mode {
-            GameMode::Menu => {
-                // Draw two layers of two background copies staggered according to elapsed_ms
-                let background_y = ((self.elapsed_ms / 40 % 1920) as i32 / 2 * 2) as f32;
-                graphics::draw(
-                    ctx,
-                    &self.background,
-                    graphics::Point2::new(0.0, background_y),
-                    0.0,
-                )?;
-                graphics::draw(
-                    ctx,
-                    &self.background,
-                    graphics::Point2::new(0.0, -1920.0 + background_y),
-                    0.0,
-                )?;
-
-                // Draw title
-                graphics::draw(ctx, &self.title, graphics::Point2::new(229.0, 100.0), 0.0)?;
-
-                let mut text =
-                    graphics::Text::new(ctx, &format!("- PRESS SPACEBAR -"), &self.score_font)
-                        .unwrap();
-                graphics::draw(ctx, &text, graphics::Point2::new(400.0, 650.0), 0.0)?;
-
-                text =
-                    graphics::Text::new(ctx, &format!("High Scores:"), &self.score_font).unwrap();
-                graphics::draw(ctx, &text, graphics::Point2::new(500.0, 300.0), 0.0)?;
-
-                for i in 0..self.high_scores.len() {
-                    
-					text =
-                        graphics::Text::new(ctx, &self.high_scores[i], &self.score_font).unwrap();
-                    graphics::draw(
-                        ctx,
-                        &text,
-                        graphics::Point2::new(500.0, 330.0 + (i as f32) * 30_f32),
-                        0.0,
-                    )?;
-                }
-            }
-            GameMode::Game => {
-                let _window_width = ctx.conf.window_mode.width;
-                let _window_height = ctx.conf.window_mode.height;
-
-                // Draw two layers of two background copies staggered according to elapsed_ms
-                let background_y = ((self.elapsed_ms / 40 % 1920) as i32 / 2 * 2) as f32;
-                graphics::draw(
-                    ctx,
-                    &self.background,
-                    graphics::Point2::new(0.0, background_y),
-                    0.0,
-                )?;
-                graphics::draw(
-                    ctx,
-                    &self.background,
-                    graphics::Point2::new(0.0, -1920.0 + background_y),
-                    0.0,
-                )?;
-
-                // Draw all entities
-                for e in &mut self.entities {
-                    let pos = graphics::Point2::new(
-                        (e.x as i32 / 4 * 4) as f32,
-                        (e.y as i32 / 4 * 4) as f32,
-                    );
-
-                    // If the texure is animated, grab the right frame, otherwise grab frame 0.
-                    let total_frames = self.textures[&e.entity_type].len();
-                    let texture = match total_frames {
-                        1 => &self.textures[&e.entity_type][0],
-                        _ => {
-                            let frame = (self.elapsed_ms as f64 / 1000.0 * ANIMATION_FRAMERATE)
-                                as usize % total_frames;
-                            &self.textures[&e.entity_type][frame]
-                        }
-                    };
-
-                    // Special drawing conditions start
-                    match e.entity_type {
-                        entity::EntityType::Player => {
-                            if self.shield_active {
-                                graphics::set_color(ctx, graphics::Color::new(0.3, 1.0, 0.3, 1.0))?
-                            }
-                        }
-                        entity::EntityType::Boss => match e.hp {
-                            0...10 => graphics::set_color(
-                                ctx,
-                                graphics::Color::new(1.0, 0.25, 0.25, 1.0),
-                            )?,
-                            10...20 => {
-                                graphics::set_color(ctx, graphics::Color::new(1.0, 0.5, 0.5, 1.0))?
-                            }
-                            _ => {
-                                graphics::set_color(ctx, graphics::Color::new(1.0, 1.0, 1.0, 1.0))?
-                            }
-                        },
-                        entity::EntityType::Splat | entity::EntityType::Shutoff => {
-                            let mut alpha: f32 = match e.lifetime {
-                                Lifetime::Forever => 1.0_f32,
-                                Lifetime::Milliseconds(r) => r as f32 / SPLAT_LIFETIME as f32,
-                            };
-                            graphics::set_color(
-                                ctx,
-                                graphics::Color::new(alpha, alpha, alpha, alpha),
-                            )?;
-                        }
-                        _ => {}
-                    }
-
-                    // Draw the entity sprite rotated if needed
-                    if e.angle == 0.0 {
-                        graphics::draw(ctx, texture, pos, e.angle)?;
-                    } else {
-                        let half_width = texture.width() as f64 / 2.0;
-                        let angle = -e.angle as f64 + (5.0 * std::f64::consts::PI / 4.0);
-                        let x = (half_width + half_width * (2.0_f64).sqrt() * angle.cos()) as f32;
-                        let y = (half_width + half_width * (2.0_f64).sqrt() * angle.sin()) as f32;
-                        graphics::draw(
-                            ctx,
-                            texture,
-                            graphics::Point2::new(pos.x + x, pos.y + y),
-                            -e.angle,
-                        )?;
-                    }
-
-                    // End drawing conditions: Reset drawing conditions
-                    graphics::set_color(ctx, graphics::Color::new(1.0, 1.0, 1.0, 1.0))?;
-
-                    // If this is an enemy, include a name tag.
-                    if e.entity_type == entity::EntityType::Enemy
-                        || e.entity_type == entity::EntityType::EnemyBlueScreen
-                    {
-                        let offset = 30;
-                        let text_pos = graphics::Point2::new(
-                            ((e.x as i32 + texture.width() as i32 + offset) / 2 * 2) as f32,
-                            ((e.y as i32 - offset) / 2 * 2) as f32,
-                        );
-
-                        //let text_pos = graphics::Point2::new(
-                        //	e.x + texture.width() as f32 + offset,
-                        //	e.y - offset);
-
-                        // Dim label after a while
-                        match e.lifetime {
-                            Lifetime::Forever => (),
-                            Lifetime::Milliseconds(r) => {
-                                let fraction_of_life =
-                                    (ENEMY_LIFETIME as f32 - r as f32) / ENEMY_LIFETIME as f32;
-                                let mut alpha = 1.0 - fraction_of_life * 20.0;
-                                if alpha < 0.0 {
-                                    alpha = 0.0;
-                                }
-                                graphics::set_color(
-                                    ctx,
-                                    graphics::Color::new(1.0, 1.0, 1.0, alpha),
-                                )?;
-                            }
-                        };
-
-                        graphics::draw(ctx, &self.labels[&e.name], text_pos, 0.0)?;
-                        graphics::line(
-                            ctx,
-                            &[
-                                graphics::Point2::new(
-                                    text_pos.x - 5.0,
-                                    text_pos.y + self.labels[&e.name].height() as f32,
-                                ),
-                                graphics::Point2::new(pos.x + texture.width() as f32, pos.y),
-                            ],
-                            4.0,
-                        )?;
-
-                        // Reset color
-                        graphics::set_color(ctx, graphics::Color::new(1.0, 1.0, 1.0, 1.0))?;
-                    }
-
-                    // Draw collision boxes if they are enabled.
-                    if DRAW_BOUNDING_BOXES {
-                        graphics::rectangle(
-                            ctx,
-                            graphics::DrawMode::Line(1.0),
-                            graphics::Rect {
-                                x: e.x + e.bounds.x,
-                                y: e.y + e.bounds.y,
-                                w: e.bounds.w,
-                                h: e.bounds.h,
-                            },
-                        )?;
-                    }
-                }
-
-                // Draw the player's life graphics
-                let player = &self.entities[0];
-
-                for i in 0..player.hp + 1 {
-                    graphics::draw(
-                        ctx,
-                        &self.textures[&EntityType::Life][0],
-                        graphics::Point2::new(
-                            _window_width as f32
-                                - (self.textures[&EntityType::Life][0].width() as f32 * 1.25
-                                    * i as f32),
-                            0.0,
-                        ),
-                        0.0,
-                    )?;
-                }
-
+		match self.game_mode {
+			
+			// If in the menu
+			GameMode::Menu => {
+			
+				// Draw two layers of two background copies staggered according to elapsed_ms
+				let background_y = ( (self.elapsed_ms/40%1920) as i32 / PIXEL_SKIP * PIXEL_SKIP ) as f32;
+				graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, background_y), 0.0)?;
+				graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, -1920.0 + background_y), 0.0)?;
 				
-                // Draw player score
-                let text = graphics::Text::new(
-                    ctx,
-                    &format!("Score: {}", &self.score.to_string()),
-                    &self.score_font,
-                ).unwrap();
-				graphics::draw(
-                    ctx,
-                    &text,
-                    graphics::Point2::new(10.0, 10.0),
-                    0.0,
-                )?;
-            }
-        }
+				// Draw title
+				graphics::draw(ctx, &self.title, graphics::Point2::new(229.0, 100.0), 0.0)?;
+				
+				// Draw "press spacebar" text blinking
+				let mut text = graphics::Text::new(ctx, &format!("- PRESS SPACEBAR -"), &self.score_font).unwrap();
+				if self.elapsed_ms % 1000 < 500 {
+					
+					graphics::draw(ctx, &text, graphics::Point2::new(400.0, 650.0), 0.0)?;
+				}
+					
+				// Draw high scores
+				text = graphics::Text::new(ctx, &format!("{:10} {:12} {:5}", "Score", "User", "Time"), &self.score_font).unwrap();
+				graphics::draw(ctx, &text, graphics::Point2::new(200.0, 300.0), 0.0)?;
+				for i in 0 .. self.high_scores.len() {
+					let text = graphics::Text::new(ctx, &self.high_scores[i], &self.score_font).unwrap();
+					graphics::draw(ctx, &text, graphics::Point2::new(200.0, 330.0 + (i as f32) * 30_f32), 0.0)?;
+				}
+			},
+			
+			// If in the game loop
+			GameMode::Game => {
+				let _window_width = ctx.conf.window_mode.width;
+				let _window_height = ctx.conf.window_mode.height;
 
-        graphics::present(ctx);
+				// Draw two layers of two background copies staggered according to elapsed_ms
+				let background_y = ( (self.elapsed_ms/40%1920) as i32 / PIXEL_SKIP * PIXEL_SKIP ) as f32;
+				graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, background_y), 0.0)?;
+				graphics::draw(ctx, &self.background, graphics::Point2::new(0.0, -1920.0 + background_y), 0.0)?;
 
-        Ok(())
-    }
+				// Draw all entities
+				for e in &mut self.entities {
+					let pos = graphics::Point2::new((e.x as i32 / PIXEL_SKIP * PIXEL_SKIP ) as f32, (e.y as i32 / PIXEL_SKIP * PIXEL_SKIP) as f32);
 
-    // Event is triggered when the player presses keydowns
-    fn key_down_event(&mut self, _ctx: &mut Context, keycode: Keycode, keymod: Mod, repeat: bool) {
-        if SHOW_INPUT_DEBUG {
-            println!(
-                "Key pressed: {:?}, modifier {:?}, repeat: {}",
-                keycode, keymod, repeat
-            );
-        }
+					// If the texure is animated, grab the right frame, otherwise grab frame 0.
+					let total_frames = self.textures[&e.entity_type].len();
+					let texture = match total_frames {
+						1 => &self.textures[&e.entity_type][0],
+						_ => {
+							let frame = (self.elapsed_ms as f64 / 1000.0 * ANIMATION_FRAMERATE)
+								as usize % total_frames;
+							&self.textures[&e.entity_type][frame]
+						}
+					};
 
-        if keycode == ggez::event::Keycode::Left {
-            self.input.left = true;
-        }
-        if keycode == ggez::event::Keycode::Right {
-            self.input.right = true;
-        }
-        if keycode == ggez::event::Keycode::Up {
-            self.input.up = true;
-        }
-        if keycode == ggez::event::Keycode::Down {
-            self.input.down = true;
-        }
-        if keycode == ggez::event::Keycode::Space {
-            self.input.shoot = true;
-        }
-        if keycode == ggez::event::Keycode::Escape {
-            self.quit = true;
-        }
-    }
+					// Special drawing conditions start
+					match e.entity_type {
+						entity::EntityType::Player => {
+							if self.shield_active {
+								graphics::set_color(ctx, graphics::Color::new(0.3, 1.0, 0.3, 1.0))?
+							}
+						},
+						entity::EntityType::Boss => match e.hp {
+							0...10 => graphics::set_color(
+								ctx,
+								graphics::Color::new(1.0, 0.25, 0.25, 1.0),
+							)?,
+							10...20 => {
+								graphics::set_color(ctx, graphics::Color::new(1.0, 0.5, 0.5, 1.0))?
+							}
+							_ => {
+								graphics::set_color(ctx, graphics::Color::new(1.0, 1.0, 1.0, 1.0))?
+							}
+						},
+						entity::EntityType::Splat | entity::EntityType::Shutoff => {
+							let mut alpha: f32 = match e.lifetime {
+								Lifetime::Forever => 1.0_f32,
+								Lifetime::Milliseconds(r) => r as f32 / SPLAT_LIFETIME as f32,
+							};
+							graphics::set_color(
+								ctx,
+								graphics::Color::new(alpha, alpha, alpha, alpha),
+							)?;
+						},
+						_ => {}
+					}
 
-    // Event is triggered when player lifts up on a keys
-    fn key_up_event(&mut self, _ctx: &mut Context, keycode: Keycode, keymod: Mod, repeat: bool) {
-        if SHOW_INPUT_DEBUG {
-            println!(
-                "Key released: {:?}, modifier {:?}, repeat: {}",
-                keycode, keymod, repeat
-            );
-        }
+					// Draw the entity sprite rotated around center of sprite if needed
+					// Non-square sprites may not rotate correctly
+					if e.angle == 0.0 {
+						graphics::draw(ctx, texture, pos, e.angle)?;
+					} else {
+						let half_width = texture.width() as f64 / 2.0;
+						let angle = -e.angle as f64 + (5.0 * std::f64::consts::PI / 4.0);
+						let x = (half_width + half_width * (2.0_f64).sqrt() * angle.cos()) as f32;
+						let y = (half_width + half_width * (2.0_f64).sqrt() * angle.sin()) as f32;
+						graphics::draw(
+							ctx,
+							texture,
+							graphics::Point2::new(pos.x + x, pos.y + y),
+							-e.angle,
+						)?;
+					}
 
-        if keycode == ggez::event::Keycode::Left {
-            self.input.left = false;
-        }
-        if keycode == ggez::event::Keycode::Right {
-            self.input.right = false;
-        }
-        if keycode == ggez::event::Keycode::Up {
-            self.input.up = false;
-        }
-        if keycode == ggez::event::Keycode::Down {
-            self.input.down = false;
-        }
+					// End drawing conditions: Reset drawing conditions
+					graphics::set_color(ctx, graphics::Color::new(1.0, 1.0, 1.0, 1.0))?;
+
+					// If this is an enemy, include a name tag.
+					if e.entity_type == entity::EntityType::Enemy ||
+						e.entity_type == entity::EntityType::EnemyBlueScreen {
+						
+						// Dim label after a while
+						match e.lifetime {
+							Lifetime::Forever => (),
+							Lifetime::Milliseconds(r) => {
+								let fraction_of_life = ( ENEMY_LIFETIME as f32 - r as f32 ) / ENEMY_LIFETIME as f32;
+								let mut alpha = 1.0 - fraction_of_life * 15.0;
+								if alpha < 0.0 {
+									alpha = 0.0;
+								}
+								graphics::set_color(ctx, graphics::Color::new(1.0, 1.0, 1.0, alpha))?;
+							},
+						};	
+
+						// Calculate label position
+						let offset = 30;
+						let text_pos = graphics::Point2::new(
+							((e.x as i32 + texture.width() as i32 + offset + 6) / PIXEL_SKIP * PIXEL_SKIP ) as f32, 
+							((e.y as i32 - offset - 6) / PIXEL_SKIP * PIXEL_SKIP) as f32);
+						
+						// Draw the label
+						graphics::draw(ctx, &self.labels[&e.name], text_pos, 0.0)?;
+						
+						// Draw a line connecting it to entity
+						graphics::line(ctx, &[
+							graphics::Point2::new(text_pos.x - 6.0, text_pos.y + self.labels[&e.name].height() as f32),
+							graphics::Point2::new(text_pos.x - offset as f32, text_pos.y + offset as f32)
+						], 4.0)?;
+						
+						// Reset color
+						graphics::set_color(ctx, graphics::Color::new(1.0, 1.0, 1.0, 1.0))?;
+					}
+					
+					// Draw collision boxes if they are enabled.
+					if DRAW_BOUNDING_BOXES {
+						graphics::rectangle(
+							ctx,
+							graphics::DrawMode::Line(1.0),
+							graphics::Rect {
+								x: e.x + e.bounds.x,
+								y: e.y + e.bounds.y,
+								w: e.bounds.w,
+								h: e.bounds.h,
+							},
+						)?;
+					}
+				}
+
+				// Draw the player's life graphics
+				let player = &self.entities[0];
+				let tex_width = self.textures[&EntityType::Life][0].width();
+				for i in 0..player.hp {
+					graphics::draw(
+						ctx,
+						&self.textures[&EntityType::Life][0],
+						graphics::Point2::new(_window_width as f32 - tex_width as f32 * 1.25 * i as f32 - tex_width as f32, 0.0), 0.0)?;
+				}
+				
+				// Generate the score text graphics and draw to screen
+				let score = graphics::Text::new(ctx, &format!("Score: {}", 
+					&self.score.to_string()), &self.score_font).unwrap();
+				graphics::draw(ctx, &score, graphics::Point2::new(10.0, 10.0), 0.0)?;
+			},
+		}
+
+		graphics::present(ctx);
+
+		Ok(())
+	}
+
+	// Event is triggered when the player presses keydowns
+	fn key_down_event(&mut self, _ctx: &mut Context, keycode: Keycode, keymod: Mod, repeat: bool) {
+		if SHOW_INPUT_DEBUG {
+			println!(
+				"Key pressed: {:?}, modifier {:?}, repeat: {}",
+				keycode, keymod, repeat
+			);
+		}
+
+		if keycode == ggez::event::Keycode::Left {
+			self.input.left = true;
+		}
+		if keycode == ggez::event::Keycode::Right {
+			self.input.right = true;
+		}
+		if keycode == ggez::event::Keycode::Up {
+			self.input.up = true;
+		}
+		if keycode == ggez::event::Keycode::Down {
+			self.input.down = true;
+		}
+		if keycode == ggez::event::Keycode::Space {
+			self.input.shoot = true;
+		}
+		if keycode == ggez::event::Keycode::Escape {
+			self.quit = true;
+		}
+	}
+
+	// Event is triggered when player lifts up on a keys
+	fn key_up_event(&mut self, _ctx: &mut Context, keycode: Keycode, keymod: Mod, repeat: bool) {
+		if SHOW_INPUT_DEBUG {
+			println!(
+				"Key released: {:?}, modifier {:?}, repeat: {}",
+				keycode, keymod, repeat
+			);
+		}
+
+		if keycode == ggez::event::Keycode::Left {
+			self.input.left = false;
+		}
+		if keycode == ggez::event::Keycode::Right {
+			self.input.right = false;
+		}
+		if keycode == ggez::event::Keycode::Up {
+			self.input.up = false;
+		}
+		if keycode == ggez::event::Keycode::Down {
+			self.input.down = false;
+		}
 		if keycode == ggez::event::Keycode::Space {
 			self.input.shoot = false;
 			self.entities[0].bullet_cooldown = 0;
 		}
 		if keycode == ggez::event::Keycode::B {
 			self.spawner.cooldowns.insert(EntityType::Boss, 0);
-        }
+		}
 		if keycode == ggez::event::Keycode::E {
 			self.spawner.cooldowns.insert(EntityType::Enemy, 0);
-        }
+		}
 		if keycode == ggez::event::Keycode::G {
 			unsafe {
 				if GOD_MODE == false {
@@ -1014,5 +1008,5 @@ impl event::EventHandler for MainState {
 				}
 			}
 		}
-    }
+	}
 }
