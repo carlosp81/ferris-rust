@@ -10,15 +10,15 @@ extern crate rand;
 use ggez::{graphics, Context};
 use self::rand::Rng;
 use game::entity::{Lifetime, Movement, Entity, EntityType};
-use game::{ENEMY_NAMES, ENEMY_BULLET_SPEED, PLAYER_BULLET_SPEED, SPLAT_LIFETIME, SHUTOFF_LIFETIME, ENEMY_LIFETIME};
+use game::{ENEMY_NAMES, ENEMY_BULLET_SPEED, PLAYER_BULLET_SPEED, SPLAT_LIFETIME, SHUTOFF_LIFETIME, ENEMY_LIFETIME, SECONDS_UNTIL_MAX_DIFFICULTY};
 use std;
 
 const ENEMY_COOLDOWN: i64 = 1_000;
 const ENEMY_COOLDOWN_BLUESCREEN: i64 = 6_000;
 const ENEMY_COOLDOWN_BOSS: i64 = 60_000;
-const POWERBOMB_COOLDOWN: i64 = 25_000;
-const UPGRADE_COOLDOWN: i64 = 12_000;
-const SHIELD_COOLDOWN: i64 = 18_000;
+const POWERBOMB_COOLDOWN: i64 = 45_000;
+const UPGRADE_COOLDOWN: i64 = 25_000;
+const SHIELD_COOLDOWN: i64 = 35_000;
 
 /// This keeps track of cooldowns for various entity types and spawns when necessary
 pub struct EntitySpawner {
@@ -177,11 +177,11 @@ impl EntitySpawner {
             EntityType::EnemyBlueScreen => {
 				e.name = "BSOD".to_string();
 				e.entity_type = EntityType::EnemyBlueScreen;
-                e.hp = 2;
+                e.hp = 4;
                 e.movement = Movement::Generated(
                     |t,r,s|{
                         (
-                            ( ( (t as f64) / 1000.0 + s * 1000.0 ).sin() + (t as f64).sin() * 2_f64 ) as f32 * 60_f32,
+                            ( ( (t as f64) / 1000.0 + s * 300.0 ).sin() + (t as f64).sin() * 2_f64 ) as f32 * 60_f32,
                             (1.0 + ( (t as f64) / 900.0 + s * 100.0).sin() + r.gen_range(0.1, 3.0)  ) as f32 * 20_f32
                         )
                     }
@@ -190,7 +190,7 @@ impl EntitySpawner {
 			EntityType::Boss => {
 				e.name = "ANSI C".to_string();
 				e.entity_type = EntityType::Boss;
-				e.hp = 25;
+				e.hp = 40;
 				e.movement = Movement::Generated(
 				    |t,_r,s|{
                         (
@@ -230,7 +230,7 @@ impl EntitySpawner {
                 w: 64.0,
                 h: 64.0,
             },
-            movement: Movement::Linear(0.0, 50.0),
+            movement: Movement::Linear(0.0, 100.0),
             lifetime: Lifetime::Milliseconds(100_000),
             seed: 0.0,
             timer: 0,
@@ -254,10 +254,10 @@ impl EntitySpawner {
             bounds: graphics::Rect {
                 x: 0.0,
                 y: 0.0,
-                w: 32.0,
-                h: 32.0,
+                w: 64.0,
+                h: 64.0,
             },
-            movement: Movement::Linear(0.0, 50.0),
+            movement: Movement::Linear(0.0, 100.0),
             lifetime: Lifetime::Milliseconds(100_000),
             seed: 0.0,
             timer: 0,
@@ -280,10 +280,10 @@ impl EntitySpawner {
             bounds: graphics::Rect {
                 x: 0.0,
                 y: 0.0,
-                w: 32.0,
-                h: 32.0,
+                w: 64.0,
+                h: 64.0,
             },
-            movement: Movement::Linear(0.0, 50.0),
+            movement: Movement::Linear(0.0, 100.0),
             lifetime: Lifetime::Milliseconds(100_000),
             seed: 0.0,
             timer: 0,
@@ -294,9 +294,9 @@ impl EntitySpawner {
         e
     }
 
-    // Update the cooldowns on all entity types that have them. If a cooldown triggers,
-    // spawn that entity and return it.
-    pub fn update(&mut self, delta_ms: u64) -> Option<Entity> {
+    /// Update the cooldowns on all entity types that have them. If a cooldown triggers,
+    /// spawn that entity and return it.
+    pub fn update(&mut self, elapsed_ms: u64, delta_ms: u64) -> Option<Entity> {
         // We dont really care about matching the player type, so we use that as a dummy.
         let mut entity_type: EntityType = EntityType::Player;
 
@@ -307,10 +307,15 @@ impl EntitySpawner {
             }
         }
 
+		let mut difficulty_factor = (SECONDS_UNTIL_MAX_DIFFICULTY - elapsed_ms / 1000) as f32 / SECONDS_UNTIL_MAX_DIFFICULTY as f32;
+		if difficulty_factor < 0.1 {
+			difficulty_factor = 0.1;
+		}
+		
         match entity_type {
             EntityType::Enemy => {
                 // Reset cooldown.
-                self.cooldowns.insert(entity_type, ENEMY_COOLDOWN);
+                self.cooldowns.insert(entity_type, (ENEMY_COOLDOWN as f32 * difficulty_factor) as i64);
 
                 // Create enemy name and seed.
                 let name = ENEMY_NAMES[self.rng.gen::<usize>() % ENEMY_NAMES.len()].clone();
@@ -325,7 +330,7 @@ impl EntitySpawner {
             EntityType::EnemyBlueScreen => {
                 // Reset cooldown.
                 self.cooldowns
-                    .insert(entity_type, ENEMY_COOLDOWN_BLUESCREEN);
+                    .insert(entity_type, (ENEMY_COOLDOWN_BLUESCREEN as f32 * difficulty_factor) as i64);
 
                 // Create enemy name and seed.
                 let name = ENEMY_NAMES[self.rng.gen::<usize>() % ENEMY_NAMES.len()].clone();
@@ -339,7 +344,7 @@ impl EntitySpawner {
             }
             EntityType::Boss => {
                 // Reset cooldown.
-                self.cooldowns.insert(entity_type, ENEMY_COOLDOWN_BOSS);
+                self.cooldowns.insert(entity_type, (ENEMY_COOLDOWN_BOSS as f32 * difficulty_factor) as i64);
 
                 // Create seed.
                 let seed: f64 = self.rng.gen_range(-1.0, 1.0);
