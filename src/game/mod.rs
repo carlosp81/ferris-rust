@@ -42,7 +42,7 @@ const ENEMY_NAMES: [&str;7] = [
 ];
 /// The closer this is to zero, the faster enemies will spawn at maximum difficulty
 const MAX_DIFFICULTY: f32 = 0.15;
-const MAX_UPGRADE_LEVEL: u32 = 5;
+const MAX_UPGRADE_LEVEL: u32 = 12;
 const PIXEL_SKIP: i32 = 2;
 const PLAYER_BULLET_COOLDOWN: i64 = 200;
 const PLAYER_BULLET_SPEED: f32 = 600.0;
