@@ -181,6 +181,7 @@ impl Entity {
                     state.input.down,
                     state.input.left,
                 ) {
+					// One and two-key combinations
                     (true, false, false, false) => self.translate(0.0, -vel),
                     (true, true, false, false) => self.translate(vel * 0.707, -vel * 0.707),
                     (false, true, false, false) => self.translate(vel, 0.0),
@@ -189,6 +190,11 @@ impl Entity {
                     (false, false, true, true) => self.translate(-vel * 0.707, vel * 0.707),
                     (false, false, false, true) => self.translate(-vel, 0.0),
                     (true, false, false, true) => self.translate(-vel * 0.707, -vel * 0.707),
+                    // Three-key combinations
+					(true, true, true, false) => self.translate(vel, 0.0),
+					(false, true, true, true) => self.translate(0.0, vel),
+					(true, false, true, true) => self.translate(-vel, 0.0),
+					(true, true, false, true) => self.translate(0.0, -vel),
                     _ => (),
                 }
 

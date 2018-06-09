@@ -836,13 +836,15 @@ self.high_scores.push(text);
 				// Draw the player's life graphics
 				let player = &self.entities[0];
 				let tex_width = self.textures[&EntityType::Life][0].width();
-				for i in 0..player.hp {
-					graphics::draw(
-						ctx,
-						&self.textures[&EntityType::Life][0],
-						graphics::Point2::new(_window_width as f32 - tex_width as f32 * 1.25 * i as f32 - tex_width as f32, 0.0), 0.0)?;
+				if player.hp > 0 {
+					for i in 0..player.hp {
+						graphics::draw(
+							ctx,
+							&self.textures[&EntityType::Life][0],
+							graphics::Point2::new(_window_width as f32 - tex_width as f32 * 1.25 * i as f32 - tex_width as f32, 0.0), 0.0)?;
+					}
 				}
-				
+					
 				// Generate the score text graphics and draw to screen
 				let score = graphics::Text::new(ctx, &format!("Score: {}", 
 					&self.score.to_string()), &self.score_font).unwrap();
