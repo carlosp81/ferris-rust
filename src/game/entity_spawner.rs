@@ -173,7 +173,6 @@ impl EntitySpawner {
 
         // Certain enemies recieve different traits
         match enemy_type {
-			// Blue screen
             EntityType::EnemyBlueScreen => {
 				e.name = "BSOD".to_string();
 				e.entity_type = EntityType::EnemyBlueScreen;
@@ -195,7 +194,7 @@ impl EntitySpawner {
 				    |t,_r,s|{
                         (
                             ( (t as f64) / 1000.0 + s * 1000.0 ).sin() as f32 * 60.0,
-							20.0
+							35.0
                         )
                     }
                 );
@@ -351,7 +350,7 @@ impl EntitySpawner {
 
                 // Create enemy.
                 let mut entity = self.spawn_enemy(seed, "ANSI C", EntityType::Boss);
-                entity.x = self.screen_width as f32 / 2.0;
+                entity.x = self.rng.gen_range(200.0, self.screen_width as f32 - 200.0);
                 entity.y = -200.0;
                 return Some(entity);
             }

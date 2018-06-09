@@ -240,7 +240,7 @@ pub fn new_game(state: &mut MainState, ctx: &mut Context) {
         name: "Ferris".to_string(),
         seed: 0.0,
         timer: 0,
-        vel: 500.0,
+        vel: 400.0,
         x: (ctx.conf.window_mode.width as f32 / 2.0)
             - (state.textures[&entity::EntityType::Player][0].width() as f32 / 2.0),
         y: ctx.conf.window_mode.height as f32
@@ -559,77 +559,7 @@ self.high_scores.push(text);
 								-PLAYER_BULLET_SPEED * angle.sin() as f32
 							);
 							self.entities.push(bullet);
-						}
-						
-						/*
-                        match self.gun_level {
-
-                            // Level 0 is a single shot gun
-                            0 => {
-                                // Spawn the bullet.
-                                let x = self.entities[0].x
-                                    + (self.textures[&entity::EntityType::Player][0].width() as f32 / 2.0)
-                                    - (self.textures[&entity::EntityType::PlayerBullet][0].width() as f32
-                                        / 2.0);
-                                let y = self.entities[0].y
-                                    - (self.textures[&entity::EntityType::PlayerBullet][0].height() as f32
-                                        / 2.0);
-                                let pb = self.spawner.player_bullet_spawner(x, y);
-                                self.entities.push(pb);
-                            },
-                            
-                            // Level 1 is a double shot gun
-                            1 => {
-                                // Reset cooldown.
-                                self.entities[0].bullet_cooldown = PLAYER_BULLET_COOLDOWN;
-                                // Spawn the bullet.
-                                let x1 = self.entities[0].x
-                                    + (self.textures[&entity::EntityType::Player][0].width() as f32 / 2.0)
-                                    - (self.textures[&entity::EntityType::PlayerBullet][0].width() as f32
-                                        * 0.1);
-                                let x2 = self.entities[0].x
-                                    + (self.textures[&entity::EntityType::Player][0].width() as f32 / 2.0)
-                                    - (self.textures[&entity::EntityType::PlayerBullet][0].width() as f32
-                                        * 0.9);
-                                let y = self.entities[0].y
-                                    - (self.textures[&entity::EntityType::PlayerBullet][0].height() as f32
-                                        / 2.0);
-                                let pb1 = self.spawner.player_bullet_spawner(x1, y);
-                                self.entities.push(pb1);
-                                let pb2 = self.spawner.player_bullet_spawner(x2, y);
-                                self.entities.push(pb2);
-                            },
-
-                            // Level 2 is a tri gun
-                            _ => {
-                                // Spawn the bullet.
-                                let x1 = self.entities[0].x
-                                    + (self.textures[&entity::EntityType::Player][0].width() as f32 / 2.0)
-                                    - (self.textures[&entity::EntityType::PlayerBullet][0].width() as f32
-                                        * 0.2);
-                                let x2 = self.entities[0].x
-                                    + (self.textures[&entity::EntityType::Player][0].width() as f32 / 2.0)
-                                    - (self.textures[&entity::EntityType::PlayerBullet][0].width() as f32
-                                        * 0.5);
-                                let x3 = self.entities[0].x
-                                    + (self.textures[&entity::EntityType::Player][0].width() as f32 / 2.0)
-                                    - (self.textures[&entity::EntityType::PlayerBullet][0].width() as f32
-                                        * 0.8);
-                                let y = self.entities[0].y
-                                    - (self.textures[&entity::EntityType::PlayerBullet][0].height() as f32
-                                        / 2.0);
-                                let mut pb1 = self.spawner.player_bullet_spawner(x1, y);
-                                pb1.movement = Movement::Linear(-PLAYER_BULLET_SPEED / 2_f32, -PLAYER_BULLET_SPEED);
-                                self.entities.push(pb1);
-
-                                let pb2 = self.spawner.player_bullet_spawner(x2, y);
-                                self.entities.push(pb2);
-
-                                let mut pb3 = self.spawner.player_bullet_spawner(x3, y);
-                                pb3.movement = Movement::Linear(PLAYER_BULLET_SPEED / 2_f32, -PLAYER_BULLET_SPEED);
-                                self.entities.push(pb3);
-                            },
-                        }*/
+						}						
                         
                         if !DISABLE_SFX {
                             // Nasty means of playing shot sounds quickly on the same channel.
