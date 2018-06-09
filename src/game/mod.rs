@@ -40,9 +40,9 @@ const ENEMY_NAMES: [&str;7] = [
 	"DEADLOCK",
 	"RACE CONDITION",
 ];
-const MAX_GUN_LEVEL: u32 = 2;
+const MAX_UPGRADE_LEVEL: u32 = 5;
 const PIXEL_SKIP: i32 = 2;
-const PLAYER_BULLET_COOLDOWN: i64 = 150;
+const PLAYER_BULLET_COOLDOWN: i64 = 200;
 const PLAYER_BULLET_SPEED: f32 = 600.0;
 const SHOW_INPUT_DEBUG: bool = false;
 const SHUTOFF_LIFETIME: i64 = 500;
@@ -219,7 +219,7 @@ pub fn new_game(state: &mut MainState, ctx: &mut Context) {
 
     // Reset the score and powerups
     state.score = 0;
-    state.gun_level = 0;
+    state.gun_level = 1;
     state.shield_active = false;
 
     // Create a new player object
@@ -289,6 +289,9 @@ fn handle_collisions(state: &mut MainState) {
 									unsafe {
 										if !GOD_MODE {
 											state.entities[entity_idx].hp -= state.entities[threat_idx].damage;
+											if state.gun_level > 1 {
+												state.gun_level -= 1;
+											}
 										}
 									}
 								}
@@ -364,10 +367,10 @@ fn handle_collisions(state: &mut MainState) {
                             if colliding(state, entity_idx, threat_idx) {
 							
                                 // Upgrade the player's gun
-                                if state.gun_level < MAX_GUN_LEVEL {
+                                if state.gun_level < MAX_UPGRADE_LEVEL {
 									state.gun_level += 1;
 								}
-
+									
 								if !DISABLE_SFX {
 									state.sfx["upgrade"].play().unwrap();
 								}
@@ -541,7 +544,24 @@ self.high_scores.push(text);
                     if self.entities[0].bullet_cooldown == 0 {
 						// Reset cooldown
 						self.entities[0].bullet_cooldown = PLAYER_BULLET_COOLDOWN;
-					
+						
+						let pi = std::f64::consts::PI;
+						let angle_step = pi / 16.0;
+						let player_tex = &self.textures[&entity::EntityType::Player][0];
+						let bullet_tex = &self.textures[&entity::EntityType::PlayerBullet][0];
+						for i in 0..self.gun_level {
+							let angle = pi / 2.0 + (i as f64 - self.gun_level as f64 / 2.0) * angle_step + angle_step / 2.0;
+							let x = self.entities[0].x + player_tex.width() as f32 / 2.0 - bullet_tex.width() as f32 + player_tex.width() as f32 / 2.0 * angle.cos() as f32;
+							let y = self.entities[0].y + player_tex.height() as f32 / 2.0 - player_tex.height() as f32 / 2.0 * angle.sin() as f32;
+							let mut bullet = self.spawner.player_bullet_spawner(x, y);
+							bullet.movement = Movement::Linear(
+								PLAYER_BULLET_SPEED * angle.cos() as f32,
+								-PLAYER_BULLET_SPEED * angle.sin() as f32
+							);
+							self.entities.push(bullet);
+						}
+						
+						/*
                         match self.gun_level {
 
                             // Level 0 is a single shot gun
@@ -609,7 +629,7 @@ self.high_scores.push(text);
                                 pb3.movement = Movement::Linear(PLAYER_BULLET_SPEED / 2_f32, -PLAYER_BULLET_SPEED);
                                 self.entities.push(pb3);
                             },
-                        }
+                        }*/
                         
                         if !DISABLE_SFX {
                             // Nasty means of playing shot sounds quickly on the same channel.

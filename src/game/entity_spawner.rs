@@ -15,9 +15,9 @@ use std;
 
 const ENEMY_COOLDOWN: i64 = 1_000;
 const ENEMY_COOLDOWN_BLUESCREEN: i64 = 6_000;
-const ENEMY_COOLDOWN_BOSS: i64 = 60_000;
-const POWERBOMB_COOLDOWN: i64 = 45_000;
-const UPGRADE_COOLDOWN: i64 = 25_000;
+const ENEMY_COOLDOWN_BOSS: i64 = 65_000;
+const POWERBOMB_COOLDOWN: i64 = 30_000;
+const UPGRADE_COOLDOWN: i64 = 50_000;
 const SHIELD_COOLDOWN: i64 = 35_000;
 
 /// This keeps track of cooldowns for various entity types and spawns when necessary
