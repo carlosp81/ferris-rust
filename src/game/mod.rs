@@ -707,8 +707,8 @@ self.high_scores.push(text);
 			
 			// If in the game loop
 			GameMode::Game => {
-				let _window_width = ctx.conf.window_mode.width;
-				let _window_height = ctx.conf.window_mode.height;
+				let window_width = ctx.conf.window_mode.width;
+				let window_height = ctx.conf.window_mode.height;
 
 				// Draw two layers of two background copies staggered according to elapsed_ms
 				let background_y = ( (self.elapsed_ms/40%1920) as i32 / PIXEL_SKIP * PIXEL_SKIP ) as f32;
@@ -841,8 +841,17 @@ self.high_scores.push(text);
 						graphics::draw(
 							ctx,
 							&self.textures[&EntityType::Life][0],
-							graphics::Point2::new(_window_width as f32 - tex_width as f32 * 1.25 * i as f32 - tex_width as f32, 0.0), 0.0)?;
+							graphics::Point2::new(window_width as f32 - tex_width as f32 * 1.25 * i as f32 - tex_width as f32, 0.0), 0.0)?;
 					}
+				}
+
+				// Draw "message text" for excitement
+				if self.gun_level == MAX_UPGRADE_LEVEL {
+					let mut text = graphics::Text::new(ctx, &format!("- RUST FULLY UPGRADED -"), &self.score_font).unwrap();
+					let blink = (self.elapsed_ms as f64 / 1000.0 * ANIMATION_FRAMERATE) as usize % 4 < 2;
+					if blink {
+						graphics::draw(ctx, &text, graphics::Point2::new(window_width as f32 / 2.0 - text.width() as f32 / 2.0, window_height as f32 - text.height() as f32), 0.0)?;
+					}				
 				}
 					
 				// Generate the score text graphics and draw to screen
@@ -926,6 +935,9 @@ self.high_scores.push(text);
 					GOD_MODE = false;
 				}
 			}
+		}
+		if keycode == ggez::event::Keycode::S {
+			self.spawner.cooldowns.insert(EntityType::Special, 0);
 		}
 	}
 }
