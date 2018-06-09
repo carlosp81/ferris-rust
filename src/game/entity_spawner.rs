@@ -10,15 +10,13 @@ extern crate rand;
 use ggez::{graphics, Context};
 use self::rand::Rng;
 use game::entity::{Lifetime, Movement, Entity, EntityType};
-use game::{ENEMY_NAMES, ENEMY_BULLET_SPEED, PLAYER_BULLET_SPEED, SPLAT_LIFETIME, SHUTOFF_LIFETIME, ENEMY_LIFETIME, SECONDS_UNTIL_MAX_DIFFICULTY};
+use game::{ENEMY_NAMES, ENEMY_BULLET_SPEED, PLAYER_BULLET_SPEED, SPLAT_LIFETIME, SHUTOFF_LIFETIME, ENEMY_LIFETIME, SECONDS_UNTIL_MAX_DIFFICULTY, MAX_DIFFICULTY};
 use std;
 
 const ENEMY_COOLDOWN: i64 = 1_000;
 const ENEMY_COOLDOWN_BLUESCREEN: i64 = 6_000;
 const ENEMY_COOLDOWN_BOSS: i64 = 65_000;
-const POWERBOMB_COOLDOWN: i64 = 30_000;
-const UPGRADE_COOLDOWN: i64 = 50_000;
-const SHIELD_COOLDOWN: i64 = 35_000;
+const SPECIAL_COOLDOWN: i64 = 20_000;
 
 /// This keeps track of cooldowns for various entity types and spawns when necessary
 pub struct EntitySpawner {
@@ -40,12 +38,12 @@ impl EntitySpawner {
 		// Set up the basic cooldowns
 
         p.cooldowns.insert(EntityType::Enemy, ENEMY_COOLDOWN);
-        p.cooldowns
-            .insert(EntityType::EnemyBlueScreen, ENEMY_COOLDOWN_BLUESCREEN);
+        p.cooldowns.insert(EntityType::EnemyBlueScreen, ENEMY_COOLDOWN_BLUESCREEN);
         p.cooldowns.insert(EntityType::Boss, ENEMY_COOLDOWN_BOSS);
-        p.cooldowns.insert(EntityType::Powerbomb, POWERBOMB_COOLDOWN);
-        p.cooldowns.insert(EntityType::GunUpgrade, UPGRADE_COOLDOWN);
-        p.cooldowns.insert(EntityType::Shield, SHIELD_COOLDOWN);
+		p.cooldowns.insert(EntityType::Special, SPECIAL_COOLDOWN);
+        //p.cooldowns.insert(EntityType::Powerbomb, POWERBOMB_COOLDOWN);
+        //p.cooldowns.insert(EntityType::GunUpgrade, UPGRADE_COOLDOWN);
+        //p.cooldowns.insert(EntityType::Shield, SHIELD_COOLDOWN);
 
         p
     }
@@ -140,6 +138,37 @@ impl EntitySpawner {
         bullet
     }
 
+	/// Spawns a special enemy holding an item.
+    pub fn spawn_special(&self, seed: f64) -> Entity {
+	    Entity {
+            name: "special".to_string(),
+            entity_type: EntityType::Special,
+            x: 0.0,
+            y: 0.0,
+            hp: 1,
+            damage: 1,
+            vel: 0.0,
+            bounds: graphics::Rect {
+                x: 18.0,
+                y: 5.0,
+                w: 44.0,
+                h: 60.0,
+            },
+            movement: Movement::Generated(|t, r, s| {
+                (
+                    (((t as f64) / 1000.0 + s * 1000.0).sin() + r.gen_range(-3.0, 3.0)) as f32
+                        * 60_f32,
+                    (1.0 + ((t as f64) / 900.0 + s * 100.0).sin()) as f32 * 60_f32,
+                )
+            }),
+            lifetime: Lifetime::Milliseconds(ENEMY_LIFETIME),
+            seed,
+            timer: 0,
+            bullet_cooldown: 0,
+            angle: 0.0,
+        }
+	}
+	
 	/// Spawns an enemy entity of a specific type.
     pub fn spawn_enemy(&self, seed: f64, name: &str, enemy_type: EntityType) -> Entity {
         // Default entity
@@ -161,7 +190,7 @@ impl EntitySpawner {
                 (
                     (((t as f64) / 1000.0 + s * 1000.0).sin() + r.gen_range(-3.0, 3.0)) as f32
                         * 60_f32,
-                    (1.0 + ((t as f64) / 900.0 + s * 100.0).sin()) as f32 * 60_f32,
+                    (1.0 + ((t as f64) / 900.0 + s * 100.0).sin()) as f32 * 80_f32,
                 )
             }),
             lifetime: Lifetime::Milliseconds(ENEMY_LIFETIME),
@@ -213,6 +242,21 @@ impl EntitySpawner {
         e
     }
 
+	/// Spawns one of three powerups randomly
+	pub fn spawn_item(&mut self) -> Entity {
+		let random = self.rng.gen_range(0.0, 1.0);
+		if random < 0.4 {
+			return self.spawn_powerbomb();
+		}
+		else if random < 0.7 {
+			return self.spawn_gun_upgrade();
+		}
+		else {
+			return self.spawn_shield();
+		}
+	}
+                
+	
 	/// Spawns a power bomb
     pub fn spawn_powerbomb(&self) -> Entity {
         let e = Entity {
@@ -241,7 +285,7 @@ impl EntitySpawner {
     }
 
 
-    pub fn spawn_gunupgrade(&self) -> Entity {
+    pub fn spawn_gun_upgrade(&self) -> Entity {
         let e = Entity {
             name: "gun upgrade".to_string(),
             entity_type: EntityType::GunUpgrade,
@@ -307,8 +351,8 @@ impl EntitySpawner {
         }
 
 		let mut difficulty_factor = (SECONDS_UNTIL_MAX_DIFFICULTY - elapsed_ms / 1000) as f32 / SECONDS_UNTIL_MAX_DIFFICULTY as f32;
-		if difficulty_factor < 0.1 {
-			difficulty_factor = 0.1;
+		if difficulty_factor < MAX_DIFFICULTY {
+			difficulty_factor = MAX_DIFFICULTY;
 		}
 		
         match entity_type {
@@ -354,39 +398,29 @@ impl EntitySpawner {
                 entity.y = -200.0;
                 return Some(entity);
             }
-            EntityType::Powerbomb => {
+            EntityType::Special => {
                 // Reset cooldown.
-                self.cooldowns.insert(entity_type, POWERBOMB_COOLDOWN);
+                self.cooldowns.insert(entity_type, (SPECIAL_COOLDOWN as f32 * difficulty_factor) as i64);
 
-                // Create Powerbomb.
-                let mut powerbomb = self.spawn_powerbomb();
-                powerbomb.x = self.rng.gen_range(0.0, self.screen_width as f32);
-                powerbomb.y = -45.0;
-                return Some(powerbomb);
-            }
-            EntityType::GunUpgrade => {
-                // Reset cooldown.
-                self.cooldowns.insert(entity_type, UPGRADE_COOLDOWN);
+                let seed: f64 = self.rng.gen_range(-1.0, 1.0);
 
-                // Create upgrade.
-                let mut upgrade = self.spawn_gunupgrade();
-                upgrade.x = self.rng.gen_range(0.0, self.screen_width as f32);
-                upgrade.y = -45.0;
-                return Some(upgrade);
-            }
-            EntityType::Shield => {
-                // Reset cooldown.
-                self.cooldowns.insert(entity_type, SHIELD_COOLDOWN);
-
-                // Create shield.
-                let mut shield = self.spawn_shield();
-                shield.x = self.rng.gen_range(0.0, self.screen_width as f32);
-                shield.y = -45.0;
-                return Some(shield);
+                // Create enemy.
+                let mut entity = self.spawn_special(seed);
+                entity.x = self.rng.gen_range(0.0, self.screen_width as f32);
+                entity.y = -70.0;
+                return Some(entity);
             }
             _ => (),
         }
 
         None
     }
+	
+	/// Resets everything for a new game
+	pub fn reset(&mut self) {
+		self.cooldowns.insert(EntityType::Enemy, ENEMY_COOLDOWN);
+		self.cooldowns.insert(EntityType::EnemyBlueScreen, ENEMY_COOLDOWN_BLUESCREEN);
+		self.cooldowns.insert(EntityType::Boss, ENEMY_COOLDOWN_BOSS);
+		self.cooldowns.insert(EntityType::Special, SPECIAL_COOLDOWN);
+	}
 }

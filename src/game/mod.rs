@@ -40,6 +40,8 @@ const ENEMY_NAMES: [&str;7] = [
 	"DEADLOCK",
 	"RACE CONDITION",
 ];
+/// The closer this is to zero, the faster enemies will spawn at maximum difficulty
+const MAX_DIFFICULTY: f32 = 0.15;
 const MAX_UPGRADE_LEVEL: u32 = 5;
 const PIXEL_SKIP: i32 = 2;
 const PLAYER_BULLET_COOLDOWN: i64 = 200;
@@ -47,6 +49,7 @@ const PLAYER_BULLET_SPEED: f32 = 600.0;
 const SHOW_INPUT_DEBUG: bool = false;
 const SHUTOFF_LIFETIME: i64 = 500;
 const SPLAT_LIFETIME: i64 = 500;
+/// The game will slowly ramp up to maximum difficulty over this amount of time
 const SECONDS_UNTIL_MAX_DIFFICULTY: u64 = 8 * 60; 
 
 static mut GOD_MODE: bool = false;
@@ -170,6 +173,10 @@ impl MainState {
 			graphics::Image::new(ctx, "/texture/powerbomb0.png").unwrap(),
 			graphics::Image::new(ctx, "/texture/powerbomb1.png").unwrap(),
 		]);
+		s.textures.insert(entity::EntityType::Special, vec![
+			graphics::Image::new(ctx, "/texture/special0.png").unwrap(),
+			graphics::Image::new(ctx, "/texture/special1.png").unwrap(),
+		]);
 		s.textures.insert(entity::EntityType::Splat, vec![graphics::Image::new(ctx, "/texture/splat.png").unwrap()] );
 		s.textures.insert(entity::EntityType::Shutoff, vec![graphics::Image::new(ctx, "/texture/shutoff.png").unwrap()] );
 		s.textures.insert(entity::EntityType::Life, vec![graphics::Image::new(ctx, "/texture/cpu.png").unwrap()] ); 
@@ -217,6 +224,13 @@ pub fn new_game(state: &mut MainState, ctx: &mut Context) {
     // Clear out old entities
     state.entities.clear();
 
+	// Reset time
+	state.elapsed_ms = 0;
+	state.start_time = std::time::SystemTime::now();
+	
+	// Reset spawner
+	state.spawner.reset();
+	
     // Reset the score and powerups
     state.score = 0;
     state.gun_level = 1;
@@ -275,7 +289,7 @@ fn handle_collisions(state: &mut MainState) {
                     match state.entities[threat_idx].entity_type {
                         
 						// When player collides with enemy
-						EntityType::Enemy | EntityType::EnemyBlueScreen | EntityType::Boss => {
+						EntityType::Enemy | EntityType::EnemyBlueScreen | EntityType::Boss | EntityType::Special => {
                             if colliding(state, entity_idx, threat_idx) {
 							
 								// If shield is active
@@ -344,6 +358,7 @@ fn handle_collisions(state: &mut MainState) {
                                     if state.entities[enemy_idx].entity_type == EntityType::Enemy
                                         || state.entities[enemy_idx].entity_type
                                             == EntityType::EnemyBlueScreen
+										|| state.entities[enemy_idx].entity_type == EntityType::Special
                                         || state.entities[enemy_idx].entity_type
                                             == EntityType::EnemyBullet
                                     {
@@ -402,7 +417,7 @@ fn handle_collisions(state: &mut MainState) {
             },
 			
 			// In the case of an enemy or boss
-			EntityType::Enemy | EntityType::EnemyBlueScreen | EntityType::Boss => {
+			EntityType::Enemy | EntityType::EnemyBlueScreen | EntityType::Boss | EntityType::Special => {
 				for threat_idx in 0..state.entities.len() {
 					match state.entities[threat_idx].entity_type {
 						
@@ -551,8 +566,8 @@ self.high_scores.push(text);
 						let bullet_tex = &self.textures[&entity::EntityType::PlayerBullet][0];
 						for i in 0..self.gun_level {
 							let angle = pi / 2.0 + (i as f64 - self.gun_level as f64 / 2.0) * angle_step + angle_step / 2.0;
-							let x = self.entities[0].x + player_tex.width() as f32 / 2.0 - bullet_tex.width() as f32 + player_tex.width() as f32 / 2.0 * angle.cos() as f32;
-							let y = self.entities[0].y + player_tex.height() as f32 / 2.0 - player_tex.height() as f32 / 2.0 * angle.sin() as f32;
+							let x = self.entities[0].x + player_tex.width() as f32 / 2.0 - bullet_tex.width() as f32 + bullet_tex.width() as f32 / 2.0 + player_tex.width() as f32 / 2.0 * angle.cos() as f32;
+							let y = self.entities[0].y + player_tex.height() as f32 / 2.0 - bullet_tex.height() as f32 / 2.0 - player_tex.width() as f32 / 2.0 * angle.sin() as f32;
 							let mut bullet = self.spawner.player_bullet_spawner(x, y);
 							bullet.movement = Movement::Linear(
 								PLAYER_BULLET_SPEED * angle.cos() as f32,
@@ -594,16 +609,18 @@ self.high_scores.push(text);
 
                     if dying {
                         // Check for any entities dying by low hp.
-                        if e.hp <= 0
-							&& e.entity_type == EntityType::Enemy
-							|| e.entity_type == EntityType::EnemyBlueScreen
-							|| e.entity_type == EntityType::Boss {
-							
-							// Gain score points
-							self.score += 10;
+                        if e.hp <= 0 {
+							match e.entity_type {
+								EntityType::Enemy => {self.score += 10;},
+								EntityType::EnemyBlueScreen => {self.score += 30;},
+								EntityType::Boss => {self.score += 200;},
+								EntityType::Special => {self.score += 50;},
+								_ => (),
+							}
 							play_explosion_sound = true;
 						}		
-					
+						
+						
                         // 100% guarentee we can kill off the target by hp alone.
 						e.hp = 0;
 						dying_entities.push(all_idx);
@@ -618,6 +635,12 @@ self.high_scores.push(text);
 						entity::EntityType::Boss => self.entities.push(self.spawner.spawn_splat(x, y)),
 						entity::EntityType::Enemy => self.entities.push(self.spawner.spawn_splat(x, y)),
 						entity::EntityType::EnemyBlueScreen => self.entities.push(self.spawner.spawn_shutoff(x, y)),
+						entity::EntityType::Special => {
+							let mut item = self.spawner.spawn_item();
+							item.x = x;
+							item.y = y;
+							self.entities.push(item);
+						},
 						_ => (), 
 					}
 				}

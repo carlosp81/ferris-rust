@@ -28,6 +28,7 @@ pub enum EntityType {
     Powerbomb,
     Splat,
     Shutoff,
+	Special,
     GunUpgrade,
     Shield
 }
