@@ -67,6 +67,7 @@ struct Input {
 pub enum GameMode {
     Menu,
     Game,
+	Win,
 }
 
 /// The main game state object which contains all the resources
@@ -117,6 +118,8 @@ impl MainState {
 	/// This function is run one time at the start of the game. It sets up
 	/// and returns the game state.
     pub fn new(ctx: &mut Context) -> GameResult<MainState> {
+		graphics::set_default_filter(ctx, graphics::FilterMode::Nearest);
+		
         let score_font = graphics::Font::new(ctx, DEFAULT_FONT, DEFAULT_FONT_SIZE)?;
 		
 		// Set up main state
@@ -200,6 +203,7 @@ impl MainState {
 		s.sfx.insert("upgrade", audio::Source::new(ctx, "/sounds/upgrade.wav")?);
 		s.sfx.insert("shield", audio::Source::new(ctx, "/sounds/shield.wav")?);
 		s.sfx.insert("powerbomb", audio::Source::new(ctx, "/sounds/powerbomb.wav")?);
+		s.sfx.insert("win", audio::Source::new(ctx, "/sounds/Tejaswi-Solstice.ogg")?);
 		
 		// Generate labels
 		let entity_font = graphics::Font::new(ctx, DEFAULT_FONT, ENEMY_FONT_SIZE)?;
@@ -473,6 +477,16 @@ fn colliding(state: &mut MainState, a: usize, b: usize) -> bool{
 	}
 }
 
+/// Write high score
+fn save_score(state: &mut MainState) {
+	let user = std::env::var("USERNAME").unwrap();
+    let total = state.elapsed_ms / 1000;
+	let minutes = total / 60;
+	let seconds = total % 60;
+	let text = format!("{:10} {:10}   {:02}:{:02}", state.score.to_string(), &user, minutes, seconds);
+	state.high_scores.push(text);
+}
+
 /// Update the state's `elapsed_ms` and `delta_ms`.
 fn update_time(state: &mut MainState) {
     let now = std::time::SystemTime::now();
@@ -500,7 +514,8 @@ impl event::EventHandler for MainState {
         }
 
         match self.game_mode {
-            GameMode::Menu => {
+            // If we are in the menu
+			GameMode::Menu => {
                 if self.input.shoot {
                     self.game_mode = GameMode::Game;
                     new_game(self, ctx);
@@ -515,13 +530,7 @@ impl event::EventHandler for MainState {
                 if self.entities.len() == 0 || self.entities[0].entity_type != EntityType::Player {
                     self.game_mode = GameMode::Menu;
                     
-					// Write high score
-					let user = std::env::var("USERNAME").unwrap();
-                    let total = self.elapsed_ms / 1000;
-					let minutes = total / 60;
-					let seconds = total % 60;
-					let text = format!("{:10} {:10}   {:02}:{:02}", self.score.to_string(), &user, minutes, seconds);
-self.high_scores.push(text);
+					save_score(self);
 					
                     // Pause game for a moment
                     let pause = std::time::Duration::from_millis(500);
@@ -663,7 +672,24 @@ self.high_scores.push(text);
 				if !DISABLE_SFX && !self.sfx["bgm"].playing() {
 					self.sfx["bgm"].play().unwrap();
 				}
-			}
+				
+				// Win the game if time is up
+				if self.elapsed_ms / 1000 > SECONDS_UNTIL_MAX_DIFFICULTY + 5 {
+					self.game_mode = GameMode::Win;
+					
+					save_score(self);
+					
+					if !DISABLE_SFX {
+						self.sfx["bgm"].stop();
+						self.sfx["win"].play().unwrap();
+					}
+				}
+			},
+			
+			// If we have won
+			GameMode::Win => {
+				
+			},
 		}
 		
 		update_time(self);
@@ -676,6 +702,9 @@ self.high_scores.push(text);
 		graphics::set_background_color(ctx, graphics::Color::new(0.0, 0.0, 0.0, 1.0));
 		graphics::clear(ctx);
 
+		let window_width = ctx.conf.window_mode.width;
+		let window_height = ctx.conf.window_mode.height;
+		
 		match self.game_mode {
 			
 			// If in the menu
@@ -707,8 +736,6 @@ self.high_scores.push(text);
 			
 			// If in the game loop
 			GameMode::Game => {
-				let window_width = ctx.conf.window_mode.width;
-				let window_height = ctx.conf.window_mode.height;
 
 				// Draw two layers of two background copies staggered according to elapsed_ms
 				let background_y = ( (self.elapsed_ms/40%1920) as i32 / PIXEL_SKIP * PIXEL_SKIP ) as f32;
@@ -859,6 +886,117 @@ self.high_scores.push(text);
 					&self.score.to_string()), &self.score_font).unwrap();
 				graphics::draw(ctx, &score, graphics::Point2::new(10.0, 10.0), 0.0)?;
 			},
+		
+			// If in the win state
+			GameMode::Win => {
+				let pi = std::f64::consts::PI;
+								
+				// Draw Ferrises
+				let total_frames = self.textures[&EntityType::Player].len();
+				let ferris_rows = 6;
+				let ferris_columns = 4;
+				for i in 0..ferris_rows {
+					for j in 0.. ferris_columns {
+						let initial_angle = (self.elapsed_ms as f64 + i as f64 * 173.0 + j as f64 * 132.0) / 1000.0 * pi;
+						let frame = ( (self.elapsed_ms as f64 / 1000.0 * ANIMATION_FRAMERATE) as usize + i ) % total_frames;
+						let texture = &self.textures[&EntityType::Player][frame];
+						let x = 50.0 * (2.0 * initial_angle).cos() as f32;
+						let y = (50.0 * (2.0 * initial_angle).sin()).abs() as f32;
+						let dance_offset = (window_width as f32 / 2.0 - texture.width() as f32 * 2.0) * (self.elapsed_ms as f64 / 4000.0 * pi).cos() as f32;
+						let horiz_offset = window_width as f32 / ferris_columns as f32; 
+						let vert_offset = window_height as f32 / ferris_rows as f32;
+						graphics::draw_ex(
+							ctx,
+							texture,
+							graphics::DrawParam {
+								dest: graphics::Point2::new(
+									x + dance_offset + j as f32 * horiz_offset,
+									50.0 + i as f32 * vert_offset - y
+								),
+								rotation: 0.0,
+								scale: graphics::Point2::new(2.0, 2.0),
+								..Default::default()
+							},
+						)?;
+					}
+				}
+				
+				// Draw text
+				let font = graphics::Font::new(ctx, DEFAULT_FONT, 16)?;
+				let green_text = graphics::Text::new(ctx, &format!("Finished"), &font).unwrap();
+				let green_text_width = green_text.width() as f32;
+				let white_text = graphics::Text::new(ctx, &format!("release [optimized] target(s) in {} points", &self.score.to_string()), &font).unwrap();
+				let white_text_width = white_text.width() as f32;
+				graphics::set_color(ctx, graphics::Color::new(0.0, 1.0, 0.0, 1.0))?;
+				graphics::draw(
+					ctx,
+					&green_text,
+					graphics::Point2::new(
+						window_width as f32 / 2.0 - (green_text_width + white_text_width) / 2.0,
+						window_height as f32 / 2.0 - green_text.height() as f32 / 2.0
+					),
+					0.0
+				)?;
+				graphics::set_color(ctx, graphics::Color::new(0.8, 0.8, 0.8, 1.0))?;
+				graphics::draw(
+					ctx,
+					&white_text,
+					graphics::Point2::new(
+						window_width as f32 / 2.0 - (green_text_width + white_text_width) / 2.0 + green_text_width + 10.0,
+						window_height as f32 / 2.0 - green_text.height() as f32 / 2.0
+					),
+					0.0
+				)?;
+				graphics::set_color(ctx, graphics::Color::new(1.0, 1.0, 1.0, 1.0))?;
+				
+				// Draw rust logo
+				let texture = &self.textures[&EntityType::PlayerBullet][0];
+				let half_width = texture.width() as f64 * 3.0 / 2.0;
+				let initial_angle = self.elapsed_ms as f64 / 1000.0 * pi;
+				let angle = -initial_angle + (5.0 * pi / 4.0);
+				let x = (half_width + half_width * (2.0_f64).sqrt() * initial_angle.cos()) as f32;
+				let y = (half_width + half_width * (2.0_f64).sqrt() * initial_angle.sin()) as f32;
+				graphics::draw_ex(
+					ctx,
+					texture,
+					graphics::DrawParam {
+						dest: graphics::Point2::new(0.0 + x, 0.0 + y),
+						rotation: -angle as f32,
+						scale: graphics::Point2::new(3.0, 3.0),
+						..Default::default()
+					},
+				)?;
+				graphics::draw_ex(
+					ctx,
+					texture,
+					graphics::DrawParam {
+						dest: graphics::Point2::new(window_width as f32 - texture.width() as f32 * 3.0 + x, 0.0 + y),
+						rotation: -angle as f32,
+						scale: graphics::Point2::new(3.0, 3.0),
+						..Default::default()
+					},
+				)?;
+				graphics::draw_ex(
+					ctx,
+					texture,
+					graphics::DrawParam {
+						dest: graphics::Point2::new(x, window_height as f32 - texture.height() as f32 * 3.0 + y),
+						rotation: -angle as f32,
+						scale: graphics::Point2::new(3.0, 3.0),
+						..Default::default()
+					},
+				)?;
+				graphics::draw_ex(
+					ctx,
+					texture,
+					graphics::DrawParam {
+						dest: graphics::Point2::new(window_width as f32 - texture.width() as f32 * 3.0 + x, window_height as f32 - texture.height() as f32 * 3.0 + y),
+						rotation: -angle as f32,
+						scale: graphics::Point2::new(3.0, 3.0),
+						..Default::default()
+					},
+				)?;
+			},
 		}
 
 		graphics::present(ctx);
@@ -938,6 +1076,9 @@ self.high_scores.push(text);
 		}
 		if keycode == ggez::event::Keycode::S {
 			self.spawner.cooldowns.insert(EntityType::Special, 0);
+		}
+		if keycode == ggez::event::Keycode::W {
+			self.elapsed_ms = SECONDS_UNTIL_MAX_DIFFICULTY * 1000 + 6000;
 		}
 	}
 }
