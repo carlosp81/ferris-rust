@@ -60,5 +60,6 @@ This program is licensed under the "MIT License". Please see the file LICENSE in
 
 ## Media attribution
 
-* Intro and background music - "[Hyperbola](http://sampleswap.org/mp3/song.php?id=432)" by [TranceAddict](http://sampleswap.org/artist/TranceAddict) - [creative commons license](https://creativecommons.org/licenses/by-sa/3.0/)
+* Intro and background music - "[Hyperbola](http://sampleswap.org/mp3/song.php?id=432)" by [Tejaswi](http://sampleswap.org/artist/TranceAddict) - [creative commons license](https://creativecommons.org/licenses/by-sa/3.0/)
+* Endgame music - "[Solstice](http://sampleswap.org/mp3/song.php?id=1417)" by [Tejaswi](http://sampleswap.org/artist/TranceAddict) - [creative commons license](https://creativecommons.org/licenses/by-sa/3.0/)
 * Ferris sprite - based on artwork by [Karen Rustad Tölva](http://rustacean.net) - [public domain](https://creativecommons.org/publicdomain/zero/1.0/)
