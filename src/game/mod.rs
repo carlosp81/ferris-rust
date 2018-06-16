@@ -16,8 +16,10 @@ use ggez::{audio, graphics};
 use std;
 mod entity;
 mod entity_spawner;
+mod scores;
 use self::entity_spawner::EntitySpawner;
 use self::entity::{EntityType, Lifetime, Movement};
+use self::scores::Scores;
 
 // Constants
 const ANIMATION_FRAMERATE: f64 = 2.283 * 2.0;
@@ -84,7 +86,7 @@ pub struct MainState {
 	/// Current game mode determining whether to display menu or game
 	game_mode: GameMode,
 	/// List of recent high scores.
-	high_scores: Vec<String>,
+	high_scores: Scores,
 	/// Player input state
 	input: Input,
 	/// Hash map of text label graphics for enemy names
@@ -94,7 +96,7 @@ pub struct MainState {
 	/// Random number generator passed to certain functions
 	rng: rand::ThreadRng,
 	/// Current player score
-    score: u32,
+    score: i32,
 	/// Font to use for player score
     score_font: graphics::Font,
 	/// Hash map of all game sounds and music, indexed by string name
@@ -129,7 +131,7 @@ impl MainState {
 			elapsed_ms: 0,
             entities: Vec::new(),
 			game_mode: GameMode::Menu,
-			high_scores: Vec::new(),
+			high_scores: Scores::new("scores.txt"),
 			input: Input {
 				left: false, 
 				right: false, 
@@ -483,8 +485,9 @@ fn save_score(state: &mut MainState) {
     let total = state.elapsed_ms / 1000;
 	let minutes = total / 60;
 	let seconds = total % 60;
-	let text = format!("{:10} {:10}   {:02}:{:02}", state.score.to_string(), &user, minutes, seconds);
-	state.high_scores.push(text);
+	let time = format!("{:02}:{:02}", minutes, seconds);
+	state.high_scores.add_score(state.score, user.to_string(), time.to_string());
+	state.high_scores.save("scores.txt");
 }
 
 /// Update the state's `elapsed_ms` and `delta_ms`.
@@ -728,9 +731,12 @@ impl event::EventHandler for MainState {
 				// Draw high scores
 				text = graphics::Text::new(ctx, &format!("{:10} {:12} {:5}", "Score", "User", "Time"), &self.score_font).unwrap();
 				graphics::draw(ctx, &text, graphics::Point2::new(200.0, 300.0), 0.0)?;
-				for i in 0 .. self.high_scores.len() {
-					let text = graphics::Text::new(ctx, &self.high_scores[i], &self.score_font).unwrap();
-					graphics::draw(ctx, &text, graphics::Point2::new(200.0, 330.0 + (i as f32) * 30_f32), 0.0)?;
+				let scores = self.high_scores.get_scores();
+				for i in 0 .. scores.len() {
+					let (score, name, time) = &scores[i];
+					let score_text = format!("{:<10} {:10}   {}", score, &name, &time);
+					let drawing_text = graphics::Text::new(ctx, &score_text, &self.score_font).unwrap();
+					graphics::draw(ctx, &drawing_text, graphics::Point2::new(200.0, 330.0 + (i as f32) * 30_f32), 0.0)?;
 				}
 			},
 			

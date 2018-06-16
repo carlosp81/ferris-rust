@@ -223,10 +223,9 @@ dependencies = [
 
 [[package]]
 name = "ferris"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "ggez 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "lazy_static 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
