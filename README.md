@@ -1,5 +1,7 @@
 # Ferris
 
+![Screenshot of Ferris gameplay](https://github.com/danieldupriest/ferris-rust/blob/master/assets/texture/ferris_screenshot.png)
+
 Copyright (C) 2018 River Bartz, Daniel Dupriest, Brandon Goldbeck
 
 A game written for an Intro to Rust course at Portland State University. Defend programming land from space bug infestation!
